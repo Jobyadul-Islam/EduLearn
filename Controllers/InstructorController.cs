@@ -108,6 +108,30 @@ namespace EduLearn.Controllers
             return View();
         }
 
+        // GET: Create an Assignment under a lesson
+        public IActionResult CreateAssignment(int lessonId)
+        {
+            ViewBag.LessonId = lessonId;
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult CreateAssignment(Assignment assignment)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.LessonId = assignment.LessonId;
+                return View(assignment);
+            }
+
+            _context.Assignments.Add(assignment);
+            _context.SaveChanges();
+
+            var lesson = _context.Lessons.Find(assignment.LessonId);
+            var module = _context.Modules.Find(lesson.ModuleId);
+            return RedirectToAction("CourseDetails", new { id = module.CourseId });
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateLesson(Lesson lesson, IFormFile? LessonFile)
         {
