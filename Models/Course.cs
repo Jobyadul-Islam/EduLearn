@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace EduLearn.Models
 {
@@ -13,8 +14,19 @@ namespace EduLearn.Models
         public decimal Price { get; set; }
 
         public int CategoryId { get; set; }
+
+        [ValidateNever]
         public Category Category { get; set; }
+
+        [ValidateNever]
+        public string InstructorId { get; set; }
+
+        public string? ThumbnailPath { get; set; }
+
+        [ValidateNever]
         public ICollection<Module> Modules { get; set; }
+
+        [ValidateNever]
         public ICollection<Enrollment> Enrollments { get; set; }
     }
 }
