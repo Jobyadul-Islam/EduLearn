@@ -26,6 +26,7 @@
                         <a href="@lesson.FilePath" target="_blank" class="ms-2">[View File]</a>
                     }
                     <a asp-action="CreateAssignment" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-secondary float-end">+ Add Assignment</a>
+                    <a asp-action="CreateQuiz" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-info float-end me-2">+ Add Quiz</a>
                 </li>
             }
         </ul>

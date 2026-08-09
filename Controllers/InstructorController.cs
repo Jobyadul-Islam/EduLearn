@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EduLearn.Data;
 using EduLearn.Models;
+using EduLearn.Models.ViewModels;
 
 namespace EduLearn.Controllers
 {
@@ -21,6 +22,8 @@ namespace EduLearn.Controllers
             _environment = environment;
         }
 
+        // ---------------- Dashboard ----------------
+
         // Instructor dashboard — shows only THIS instructor's courses
         public IActionResult Index()
         {
@@ -28,6 +31,8 @@ namespace EduLearn.Controllers
             var courses = _context.Courses.Where(c => c.InstructorId == userId).ToList();
             return View(courses);
         }
+
+        // ---------------- Course ----------------
 
         public IActionResult CreateCourse()
         {
@@ -79,6 +84,8 @@ namespace EduLearn.Controllers
             return View(course);
         }
 
+        // ---------------- Module ----------------
+
         // GET: Create a Module under a course
         public IActionResult CreateModule(int courseId)
         {
@@ -101,35 +108,13 @@ namespace EduLearn.Controllers
             return RedirectToAction("CourseDetails", new { id = module.CourseId });
         }
 
+        // ---------------- Lesson ----------------
+
         // GET: Create a Lesson under a module
         public IActionResult CreateLesson(int moduleId)
         {
             ViewBag.ModuleId = moduleId;
             return View();
-        }
-
-        // GET: Create an Assignment under a lesson
-        public IActionResult CreateAssignment(int lessonId)
-        {
-            ViewBag.LessonId = lessonId;
-            return View();
-        }
-
-        [HttpPost]
-        public IActionResult CreateAssignment(Assignment assignment)
-        {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.LessonId = assignment.LessonId;
-                return View(assignment);
-            }
-
-            _context.Assignments.Add(assignment);
-            _context.SaveChanges();
-
-            var lesson = _context.Lessons.Find(assignment.LessonId);
-            var module = _context.Modules.Find(lesson.ModuleId);
-            return RedirectToAction("CourseDetails", new { id = module.CourseId });
         }
 
         [HttpPost]
@@ -160,6 +145,84 @@ namespace EduLearn.Controllers
             _context.Lessons.Add(lesson);
             _context.SaveChanges();
 
+            var module = _context.Modules.Find(lesson.ModuleId);
+            return RedirectToAction("CourseDetails", new { id = module.CourseId });
+        }
+
+        // ---------------- Assignment ----------------
+
+        // GET: Create an Assignment under a lesson
+        public IActionResult CreateAssignment(int lessonId)
+        {
+            ViewBag.LessonId = lessonId;
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult CreateAssignment(Assignment assignment)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.LessonId = assignment.LessonId;
+                return View(assignment);
+            }
+
+            _context.Assignments.Add(assignment);
+            _context.SaveChanges();
+
+            var lesson = _context.Lessons.Find(assignment.LessonId);
+            var module = _context.Modules.Find(lesson.ModuleId);
+            return RedirectToAction("CourseDetails", new { id = module.CourseId });
+        }
+
+        // ---------------- Quiz ----------------
+
+        // GET: Create a Quiz under a lesson
+        public IActionResult CreateQuiz(int lessonId)
+        {
+            var model = new QuizCreateViewModel { LessonId = lessonId };
+            // start with 1 empty question, each with 2 empty options, so the form isn't blank
+            model.Questions.Add(new QuestionViewModel
+            {
+                Options = new List<OptionViewModel> { new OptionViewModel(), new OptionViewModel() }
+            });
+            return View(model);
+        }
+
+        [HttpPost]
+        public IActionResult CreateQuiz(QuizCreateViewModel model)
+        {
+            var quiz = new Quiz
+            {
+                Title = model.Title,
+                LessonId = model.LessonId,
+                Questions = new List<QuizQuestion>()
+            };
+
+            foreach (var q in model.Questions)
+            {
+                var question = new QuizQuestion
+                {
+                    QuestionText = q.QuestionText,
+                    Options = new List<QuizOption>()
+                };
+
+                foreach (var o in q.Options)
+                {
+                    question.Options.Add(new QuizOption
+                    {
+                        OptionText = o.OptionText,
+                        IsCorrect = o.IsCorrect
+                    });
+                }
+
+                quiz.Questions.Add(question);
+            }
+
+            _context.Quizzes.Add(quiz);
+            _context.SaveChanges();
+
+            var lesson = _context.Lessons.Find(model.LessonId);
             var module = _context.Modules.Find(lesson.ModuleId);
             return RedirectToAction("CourseDetails", new { id = module.CourseId });
         }

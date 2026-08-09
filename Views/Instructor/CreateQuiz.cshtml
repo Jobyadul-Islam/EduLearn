@@ -1,0 +1,83 @@
+﻿@model EduLearn.Models.ViewModels.QuizCreateViewModel
+
+@{
+    ViewData["Title"] = "Add Quiz";
+}
+
+<h2>Add Quiz</h2>
+
+<form asp-action="CreateQuiz" method="post" id="quizForm">
+    <input type="hidden" name="LessonId" value="@Model.LessonId" />
+
+    <div class="mb-3">
+        <label>Quiz Title</label>
+        <input name="Title" class="form-control" />
+    </div>
+
+    <div id="questionsContainer">
+        @for (int q = 0; q < Model.Questions.Count; q++)
+        {
+            <div class="card mb-3 question-block">
+                <div class="card-body">
+                    <label>Question @(q + 1)</label>
+                    <input name="Questions[@q].QuestionText" class="form-control mb-2" />
+
+                    <div class="options-container">
+                        @for (int o = 0; o < Model.Questions[q].Options.Count; o++)
+                        {
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">
+                                    <input type="checkbox" name="Questions[@q].Options[@o].IsCorrect" value="true" />
+                                    <input type="hidden" name="Questions[@q].Options[@o].IsCorrect" value="false" />
+                                </span>
+                                <input name="Questions[@q].Options[@o].OptionText" class="form-control" placeholder="Option text" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button type="button" id="addQuestionBtn" class="btn btn-secondary mb-3">+ Add Another Question</button>
+    <br />
+    <button type="submit" class="btn btn-primary">Save Quiz</button>
+</form>
+
+@section Scripts {
+    <script>
+        let questionIndex = @Model.Questions.Count;
+
+        document.getElementById('addQuestionBtn').addEventListener('click', function () {
+            const container = document.getElementById('questionsContainer');
+
+            const block = document.createElement('div');
+            block.className = 'card mb-3 question-block';
+            block.innerHTML = `
+                <div class="card-body">
+                    <label>Question ${questionIndex + 1}</label>
+                    <input name="Questions[${questionIndex}].QuestionText" class="form-control mb-2" />
+                    <div class="options-container">
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">
+                                <input type="checkbox" name="Questions[${questionIndex}].Options[0].IsCorrect" value="true" />
+                                <input type="hidden" name="Questions[${questionIndex}].Options[0].IsCorrect" value="false" />
+                            </span>
+                            <input name="Questions[${questionIndex}].Options[0].OptionText" class="form-control" placeholder="Option text" />
+                        </div>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">
+                                <input type="checkbox" name="Questions[${questionIndex}].Options[1].IsCorrect" value="true" />
+                                <input type="hidden" name="Questions[${questionIndex}].Options[1].IsCorrect" value="false" />
+                            </span>
+                            <input name="Questions[${questionIndex}].Options[1].OptionText" class="form-control" placeholder="Option text" />
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(block);
+            questionIndex++;
+        });
+    </script>
+}
