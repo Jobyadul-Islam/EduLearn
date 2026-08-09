@@ -1,0 +1,29 @@
+﻿@model EduLearn.Models.Lesson
+
+@{
+    ViewData["Title"] = "Add Lesson";
+}
+
+<h2>Add Lesson</h2>
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="CreateLesson" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="ModuleId" value="@ViewBag.ModuleId" />
+    <div class="mb-3">
+        <label>Lesson Title</label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Content</label>
+        <textarea asp-for="Content" class="form-control"></textarea>
+    </div>
+    <div class="mb-3">
+        <label>Video URL (optional)</label>
+        <input asp-for="VideoUrl" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Upload File (video/PDF)</label>
+        <input type="file" name="LessonFile" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>

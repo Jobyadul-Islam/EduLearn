@@ -18,7 +18,8 @@
                 }
                 <div class="card-body">
                     <h5 class="card-title">@course.Title</h5>
-                    <p class="card-text">@course.Description</p>
+                    <p class="card-text"><strong>$@course.Price</strong></p>
+                    <a asp-action="CourseDetails" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary">Manage Content</a>
                     <p class="card-text"><strong>$@course.Price</strong></p>
                 </div>
             </div>

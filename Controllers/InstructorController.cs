@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using EduLearn.Data;
 using EduLearn.Models;
 
@@ -21,7 +22,7 @@ namespace EduLearn.Controllers
         }
 
         // Instructor dashboard — shows only THIS instructor's courses
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             var userId = _userManager.GetUserId(User);
             var courses = _context.Courses.Where(c => c.InstructorId == userId).ToList();
@@ -63,6 +64,80 @@ namespace EduLearn.Controllers
             _context.SaveChanges();
 
             return RedirectToAction("Index");
+        }
+
+        // View a course's modules (instructor's own course only)
+        public IActionResult CourseDetails(int id)
+        {
+            var course = _context.Courses
+                .Include(c => c.Modules)
+                .ThenInclude(m => m.Lessons)
+                .FirstOrDefault(c => c.Id == id);
+
+            if (course == null) return NotFound();
+
+            return View(course);
+        }
+
+        // GET: Create a Module under a course
+        public IActionResult CreateModule(int courseId)
+        {
+            ViewBag.CourseId = courseId;
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult CreateModule(Module module)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.CourseId = module.CourseId;
+                return View(module);
+            }
+
+            _context.Modules.Add(module);
+            _context.SaveChanges();
+
+            return RedirectToAction("CourseDetails", new { id = module.CourseId });
+        }
+
+        // GET: Create a Lesson under a module
+        public IActionResult CreateLesson(int moduleId)
+        {
+            ViewBag.ModuleId = moduleId;
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateLesson(Lesson lesson, IFormFile? LessonFile)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.ModuleId = lesson.ModuleId;
+                return View(lesson);
+            }
+
+            if (LessonFile != null && LessonFile.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "lessons");
+                Directory.CreateDirectory(uploadsFolder); // ensures folder exists
+
+                var uniqueFileName = Guid.NewGuid().ToString() + "_" + LessonFile.FileName;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await LessonFile.CopyToAsync(stream);
+                }
+
+                lesson.FilePath = "/uploads/lessons/" + uniqueFileName;
+            }
+
+            _context.Lessons.Add(lesson);
+            _context.SaveChanges();
+
+            var module = _context.Modules.Find(lesson.ModuleId);
+            return RedirectToAction("CourseDetails", new { id = module.CourseId });
         }
     }
 }
