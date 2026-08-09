@@ -1,0 +1,27 @@
+﻿@model List<EduLearn.Models.Enrollment>
+
+@{
+    ViewData["Title"] = "My Enrollments";
+}
+
+<h2>My Enrolled Courses</h2>
+
+@if (!Model.Any())
+{
+    <p>You haven't enrolled in any courses yet.</p>
+}
+
+<div class="row">
+    @foreach (var enrollment in Model)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@enrollment.Course.Title</h5>
+                    <p class="card-text">Enrolled on: @enrollment.EnrollDate.ToShortDateString()</p>
+                    <a asp-action="Details" asp-route-id="@enrollment.CourseId" class="btn btn-outline-primary">View Course</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

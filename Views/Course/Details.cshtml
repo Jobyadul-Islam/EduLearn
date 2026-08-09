@@ -33,7 +33,25 @@
         <div class="card">
             <div class="card-body text-center">
                 <h3>$@Model.Price</h3>
-                <button class="btn btn-success w-100">Enroll Now</button>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    @if ((bool)ViewBag.IsEnrolled)
+                    {
+                        <div class="alert alert-success text-center">✓ You are enrolled in this course</div>
+                        <a asp-action="MyEnrollments" class="btn btn-outline-primary w-100">Go to My Enrollments</a>
+                    }
+                    else
+                    {
+                        <form asp-action="Enroll" method="post">
+                            <input type="hidden" name="courseId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-success w-100">Enroll Now</button>
+                        </form>
+                    }
+                }
+                else
+                {
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-success w-100">Login to Enroll</a>
+                }
             </div>
         </div>
     </div>
