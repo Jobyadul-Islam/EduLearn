@@ -1,0 +1,28 @@
+﻿@model List<EduLearn.Models.Course>
+
+@{
+    ViewData["Title"] = "All Courses";
+}
+
+<h2>Explore Courses</h2>
+
+<div class="row">
+    @foreach (var course in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                @if (!string.IsNullOrEmpty(course.ThumbnailPath))
+                {
+                    <img src="@course.ThumbnailPath" class="card-img-top" style="height:180px; object-fit:cover;" />
+                }
+                <div class="card-body">
+                    <span class="badge bg-secondary mb-2">@course.Category?.Name</span>
+                    <h5 class="card-title">@course.Title</h5>
+                    <p class="card-text">@course.Description</p>
+                    <p class="card-text"><strong>$@course.Price</strong></p>
+                    <a asp-action="Details" asp-route-id="@course.Id" class="btn btn-primary">View Course</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
