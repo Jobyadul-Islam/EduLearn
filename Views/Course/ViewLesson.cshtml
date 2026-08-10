@@ -2,9 +2,23 @@
 
 @{
     ViewData["Title"] = Model.Title;
+    var submittedIds = (List<int>)ViewBag.SubmittedAssignmentIds;
 }
 
 <h2>@Model.Title</h2>
+
+@if ((bool)ViewBag.IsCompleted)
+{
+    <div class="alert alert-success">✓ Lesson Completed</div>
+}
+else
+{
+    <form asp-action="MarkComplete" method="post">
+        <input type="hidden" name="lessonId" value="@Model.Id" />
+        <button type="submit" class="btn btn-outline-success mb-3">Mark as Complete</button>
+    </form>
+}
+
 <p>@Model.Content</p>
 
 @if (!string.IsNullOrEmpty(Model.VideoUrl))
@@ -20,8 +34,8 @@
         <a href="@Model.FilePath" target="_blank" class="btn btn-outline-primary">Download / View File</a>
     </div>
 }
-@if (Model.Assignments != null && Model.Assignments.Any())
 
+@if (Model.Assignments != null && Model.Assignments.Any())
 {
     <h4 class="mt-4">Assignments</h4>
     @foreach (var assignment in Model.Assignments)
@@ -31,10 +45,18 @@
                 <h5>@assignment.Title</h5>
                 <p>@assignment.Description</p>
                 <p><small>Due: @assignment.DueDate.ToShortDateString()</small></p>
-                <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-primary">Submit Assignment</a>
+                @if (submittedIds.Contains(assignment.Id))
+                {
+                    <span class="badge bg-success mb-2">✓ Submitted</span><br />
+                    <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-outline-primary">Resubmit</a>
+                }
+                else
+                {
+                    <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-primary">Submit Assignment</a>
+                }
             </div>
         </div>
     }
 }
 
-<a asp-action="Details" asp-route-id="@Model.Module.CourseId" class="btn btn-link">Back to Course</a>
+<a asp-action="Details" asp-route-id="@Model.Module.CourseId" class="btn btn-link mt-3">Back to Course</a>

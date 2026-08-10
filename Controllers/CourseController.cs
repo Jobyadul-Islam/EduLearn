@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -116,7 +117,44 @@ namespace EduLearn.Controllers
                 return Forbid();
             }
 
+            ViewBag.IsCompleted = _context.LessonProgresses
+                .Any(p => p.LessonId == id && p.StudentId == userId && p.IsCompleted);
+
+            ViewBag.SubmittedAssignmentIds = _context.AssignmentSubmissions
+                .Where(s => s.StudentId == userId)
+                .Select(s => s.AssignmentId)
+                .ToList();
+
             return View(lesson);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public IActionResult MarkComplete(int lessonId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var progress = _context.LessonProgresses
+                .FirstOrDefault(p => p.LessonId == lessonId && p.StudentId == userId);
+
+            if (progress == null)
+            {
+                progress = new LessonProgress
+                {
+                    LessonId = lessonId,
+                    StudentId = userId,
+                    IsCompleted = true
+                };
+                _context.LessonProgresses.Add(progress);
+            }
+            else
+            {
+                progress.IsCompleted = true;
+            }
+
+            _context.SaveChanges();
+
+            return RedirectToAction("ViewLesson", new { id = lessonId });
         }
 
         [Authorize]
@@ -154,15 +192,30 @@ namespace EduLearn.Controllers
                 await SubmissionFile.CopyToAsync(stream);
             }
 
-            var submission = new AssignmentSubmission
-            {
-                AssignmentId = assignmentId,
-                StudentId = _userManager.GetUserId(User),
-                FilePath = "/uploads/submissions/" + uniqueFileName,
-                SubmittedDate = DateTime.Now
-            };
+            var userId = _userManager.GetUserId(User);
 
-            _context.AssignmentSubmissions.Add(submission);
+            // Check if this student already submitted this assignment
+            var existingSubmission = _context.AssignmentSubmissions
+                .FirstOrDefault(s => s.AssignmentId == assignmentId && s.StudentId == userId);
+
+            if (existingSubmission != null)
+            {
+                // Update the existing submission instead of creating a new one
+                existingSubmission.FilePath = "/uploads/submissions/" + uniqueFileName;
+                existingSubmission.SubmittedDate = DateTime.Now;
+            }
+            else
+            {
+                var submission = new AssignmentSubmission
+                {
+                    AssignmentId = assignmentId,
+                    StudentId = userId,
+                    FilePath = "/uploads/submissions/" + uniqueFileName,
+                    SubmittedDate = DateTime.Now
+                };
+                _context.AssignmentSubmissions.Add(submission);
+            }
+
             _context.SaveChanges();
 
             var assignmentForLesson = _context.Assignments.Find(assignmentId);

@@ -19,5 +19,6 @@ namespace EduLearn.Data
         public DbSet<QuizQuestion> QuizQuestions { get; set; }
         public DbSet<QuizOption> QuizOptions { get; set; }
         public DbSet<AssignmentSubmission> AssignmentSubmissions { get; set; }
+        public DbSet<LessonProgress> LessonProgresses { get; set; }
     }
 }
