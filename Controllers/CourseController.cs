@@ -91,5 +91,27 @@ namespace EduLearn.Controllers
 
             return View(enrollments);
         }
+        [Authorize]
+        public IActionResult ViewLesson(int id)
+        {
+            var lesson = _context.Lessons
+                .Include(l => l.Module)
+                .ThenInclude(m => m.Course)
+                .FirstOrDefault(l => l.Id == id);
+
+            if (lesson == null) return NotFound();
+
+            var courseId = lesson.Module.Course.Id;
+            var userId = _userManager.GetUserId(User);
+
+            bool isEnrolled = _context.Enrollments.Any(e => e.CourseId == courseId && e.StudentId == userId);
+
+            if (!isEnrolled)
+            {
+                return Forbid(); // returns a 403 Access Denied response
+            }
+
+            return View(lesson);
+        }
     }
 }

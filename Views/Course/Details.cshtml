@@ -22,7 +22,9 @@
                 <ul class="list-group list-group-flush">
                     @foreach (var lesson in module.Lessons)
                     {
-                        <li class="list-group-item">@lesson.Title</li>
+                        <li class="list-group-item">
+                            <a asp-action="ViewLesson" asp-route-id="@lesson.Id">@lesson.Title</a>
+                        </li>
                     }
                 </ul>
             </div>

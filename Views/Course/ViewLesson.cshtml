@@ -1,0 +1,24 @@
+﻿@model EduLearn.Models.Lesson
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<h2>@Model.Title</h2>
+<p>@Model.Content</p>
+
+@if (!string.IsNullOrEmpty(Model.VideoUrl))
+{
+    <div class="mb-3">
+        <strong>Video:</strong> <a href="@Model.VideoUrl" target="_blank">@Model.VideoUrl</a>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.FilePath))
+{
+    <div class="mb-3">
+        <a href="@Model.FilePath" target="_blank" class="btn btn-outline-primary">Download / View File</a>
+    </div>
+}
+
+<a asp-action="Details" asp-route-id="@Model.Module.CourseId" class="btn btn-link">Back to Course</a>
