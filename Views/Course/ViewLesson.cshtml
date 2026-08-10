@@ -20,5 +20,21 @@
         <a href="@Model.FilePath" target="_blank" class="btn btn-outline-primary">Download / View File</a>
     </div>
 }
+@if (Model.Assignments != null && Model.Assignments.Any())
+
+{
+    <h4 class="mt-4">Assignments</h4>
+    @foreach (var assignment in Model.Assignments)
+    {
+        <div class="card mb-2">
+            <div class="card-body">
+                <h5>@assignment.Title</h5>
+                <p>@assignment.Description</p>
+                <p><small>Due: @assignment.DueDate.ToShortDateString()</small></p>
+                <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-primary">Submit Assignment</a>
+            </div>
+        </div>
+    }
+}
 
 <a asp-action="Details" asp-route-id="@Model.Module.CourseId" class="btn btn-link">Back to Course</a>

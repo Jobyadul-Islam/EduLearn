@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +15,13 @@ namespace EduLearn.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IWebHostEnvironment _environment;
 
-        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
         {
             _context = context;
             _userManager = userManager;
+            _environment = environment;
         }
 
         // Public course listing — no login required
@@ -52,14 +58,12 @@ namespace EduLearn.Controllers
             return View(course);
         }
 
-        // Enroll the logged-in user into a course
         [Authorize]
         [HttpPost]
         public IActionResult Enroll(int courseId)
         {
             var userId = _userManager.GetUserId(User);
 
-            // Prevent duplicate enrollment
             bool alreadyEnrolled = _context.Enrollments
                 .Any(e => e.CourseId == courseId && e.StudentId == userId);
 
@@ -78,7 +82,6 @@ namespace EduLearn.Controllers
             return RedirectToAction("Details", new { id = courseId });
         }
 
-        // Show the logged-in user's enrolled courses
         [Authorize]
         public IActionResult MyEnrollments()
         {
@@ -91,12 +94,14 @@ namespace EduLearn.Controllers
 
             return View(enrollments);
         }
+
         [Authorize]
         public IActionResult ViewLesson(int id)
         {
             var lesson = _context.Lessons
                 .Include(l => l.Module)
                 .ThenInclude(m => m.Course)
+                .Include(l => l.Assignments)
                 .FirstOrDefault(l => l.Id == id);
 
             if (lesson == null) return NotFound();
@@ -108,10 +113,60 @@ namespace EduLearn.Controllers
 
             if (!isEnrolled)
             {
-                return Forbid(); // returns a 403 Access Denied response
+                return Forbid();
             }
 
             return View(lesson);
+        }
+
+        [Authorize]
+        public IActionResult SubmitAssignment(int assignmentId)
+        {
+            var assignment = _context.Assignments.Find(assignmentId);
+            if (assignment == null) return NotFound();
+
+            ViewBag.AssignmentId = assignmentId;
+            ViewBag.AssignmentTitle = assignment.Title;
+            return View();
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> SubmitAssignment(int assignmentId, IFormFile SubmissionFile)
+        {
+            if (SubmissionFile == null || SubmissionFile.Length == 0)
+            {
+                ModelState.AddModelError("", "Please select a file to submit.");
+                var assignment = _context.Assignments.Find(assignmentId);
+                ViewBag.AssignmentId = assignmentId;
+                ViewBag.AssignmentTitle = assignment.Title;
+                return View();
+            }
+
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "submissions");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName = Guid.NewGuid().ToString() + "_" + SubmissionFile.FileName;
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await SubmissionFile.CopyToAsync(stream);
+            }
+
+            var submission = new AssignmentSubmission
+            {
+                AssignmentId = assignmentId,
+                StudentId = _userManager.GetUserId(User),
+                FilePath = "/uploads/submissions/" + uniqueFileName,
+                SubmittedDate = DateTime.Now
+            };
+
+            _context.AssignmentSubmissions.Add(submission);
+            _context.SaveChanges();
+
+            var assignmentForLesson = _context.Assignments.Find(assignmentId);
+            return RedirectToAction("ViewLesson", new { id = assignmentForLesson.LessonId });
         }
     }
 }

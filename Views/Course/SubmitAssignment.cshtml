@@ -1,0 +1,15 @@
+﻿@{
+    ViewData["Title"] = "Submit Assignment";
+}
+
+<h2>Submit Assignment: @ViewBag.AssignmentTitle</h2>
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="SubmitAssignment" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="assignmentId" value="@ViewBag.AssignmentId" />
+    <div class="mb-3">
+        <label>Upload your file</label>
+        <input type="file" name="SubmissionFile" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
