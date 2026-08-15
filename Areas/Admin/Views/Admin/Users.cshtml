@@ -1,0 +1,74 @@
+@model List<EduLearn.Models.ViewModels.UserListItemViewModel>
+
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<h2>Manage Users</h2>
+<a asp-action="Index" class="btn btn-link mb-3">Back to Dashboard</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Approval</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.FullName</td>
+                <td>@user.Email</td>
+                <td><span class="badge bg-secondary">@user.Role</span></td>
+                <td>
+                    @if (user.Role == "Instructor")
+                    {
+                        if (user.IsApproved)
+                        {
+                            <span class="badge bg-success">Approved</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>
+                    @if (user.IsActive)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Deactivated</span>
+                    }
+                </td>
+                <td>
+                    @if (user.Role == "Instructor" && !user.IsApproved)
+                    {
+                        <form asp-action="Approve" asp-route-id="@user.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                        </form>
+                        <form asp-action="Reject" asp-route-id="@user.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                        </form>
+                    }
+                    <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            @(user.IsActive ? "Deactivate" : "Activate")
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

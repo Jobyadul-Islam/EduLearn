@@ -1,0 +1,22 @@
+@model EduLearn.Models.Course
+
+@{
+    ViewData["Title"] = "Delete Course";
+}
+
+<h2>Delete Course</h2>
+<p>Are you sure you want to delete <strong>@Model.Title</strong>? This will also remove all its modules, lessons, assignments, and quizzes.</p>
+
+<dl class="row">
+    <dt class="col-sm-2">Title</dt>
+    <dd class="col-sm-10">@Model.Title</dd>
+    <dt class="col-sm-2">Category</dt>
+    <dd class="col-sm-10">@Model.Category?.Name</dd>
+    <dt class="col-sm-2">Price</dt>
+    <dd class="col-sm-10">$@Model.Price</dd>
+</dl>
+
+<form asp-action="DeleteCourse" asp-route-id="@Model.Id" method="post">
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

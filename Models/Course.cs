@@ -10,6 +10,9 @@ namespace EduLearn.Models
         public string Title { get; set; }
         public string Description { get; set; }
 
+        [ValidateNever]
+        public string? CourseCode { get; set; }   // e.g. "EDU-0007"
+
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 
@@ -20,6 +23,10 @@ namespace EduLearn.Models
 
         [ValidateNever]
         public string InstructorId { get; set; }
+
+        [ValidateNever]
+        [ForeignKey("InstructorId")]
+        public ApplicationUser Instructor { get; set; }
 
         public string? ThumbnailPath { get; set; }
 

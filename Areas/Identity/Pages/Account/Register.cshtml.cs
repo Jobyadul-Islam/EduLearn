@@ -33,6 +33,9 @@ namespace EduLearn.Areas.Identity.Pages.Account
 
             [DataType(DataType.Password), Compare("Password")]
             public string ConfirmPassword { get; set; }
+
+            [Required]
+            public string Role { get; set; } = "Student";
         }
 
         public void OnGet() { }
@@ -41,18 +44,22 @@ namespace EduLearn.Areas.Identity.Pages.Account
         {
             if (!ModelState.IsValid) return Page();
 
+            var role = Input.Role == "Instructor" ? "Instructor" : "Student";
+
             var user = new ApplicationUser
             {
                 UserName = Input.Email,
                 Email = Input.Email,
-                FullName = Input.FullName
+                FullName = Input.FullName,
+                // Instructors start locked out of publishing until an Admin approves them
+                IsApproved = role != "Instructor"
             };
 
             var result = await _userManager.CreateAsync(user, Input.Password);
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, "Student");
+                await _userManager.AddToRoleAsync(user, role);
                 await _signInManager.SignInAsync(user, isPersistent: false);
                 return RedirectToPage("/Index", new { area = "" });
             }

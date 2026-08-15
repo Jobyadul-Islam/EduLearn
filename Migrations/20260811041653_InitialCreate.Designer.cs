@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EduLearn.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260809165849_AddQuizModels")]
-    partial class AddQuizModels
+    [Migration("20260811041653_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -124,6 +124,35 @@ namespace EduLearn.Migrations
                     b.HasIndex("LessonId");
 
                     b.ToTable("Assignments");
+                });
+
+            modelBuilder.Entity("EduLearn.Models.AssignmentSubmission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("SubmittedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.ToTable("AssignmentSubmissions");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Category", b =>
@@ -238,6 +267,31 @@ namespace EduLearn.Migrations
                     b.HasIndex("ModuleId");
 
                     b.ToTable("Lessons");
+                });
+
+            modelBuilder.Entity("EduLearn.Models.LessonProgress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.ToTable("LessonProgresses");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Module", b =>
@@ -471,12 +525,23 @@ namespace EduLearn.Migrations
             modelBuilder.Entity("EduLearn.Models.Assignment", b =>
                 {
                     b.HasOne("EduLearn.Models.Lesson", "Lesson")
-                        .WithMany()
+                        .WithMany("Assignments")
                         .HasForeignKey("LessonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("EduLearn.Models.AssignmentSubmission", b =>
+                {
+                    b.HasOne("EduLearn.Models.Assignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Course", b =>
@@ -510,6 +575,17 @@ namespace EduLearn.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("EduLearn.Models.LessonProgress", b =>
+                {
+                    b.HasOne("EduLearn.Models.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Module", b =>
@@ -617,6 +693,11 @@ namespace EduLearn.Migrations
                     b.Navigation("Enrollments");
 
                     b.Navigation("Modules");
+                });
+
+            modelBuilder.Entity("EduLearn.Models.Lesson", b =>
+                {
+                    b.Navigation("Assignments");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Module", b =>

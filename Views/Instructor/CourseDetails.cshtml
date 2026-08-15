@@ -27,6 +27,18 @@
                     }
                     <a asp-action="CreateAssignment" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-secondary float-end">+ Add Assignment</a>
                     <a asp-action="CreateQuiz" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-info float-end me-2">+ Add Quiz</a>
+
+                    @if (lesson.Assignments != null && lesson.Assignments.Any())
+                    {
+                        <ul class="list-unstyled mt-2 ms-3 mb-0">
+                            @foreach (var assignment in lesson.Assignments)
+                            {
+                                <li class="small text-muted">
+                                    Assignment: @assignment.Title — due @assignment.DueDate.ToShortDateString()
+                                </li>
+                            }
+                        </ul>
+                    }
                 </li>
             }
         </ul>

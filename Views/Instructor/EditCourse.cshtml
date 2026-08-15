@@ -1,0 +1,44 @@
+@model EduLearn.Models.Course
+
+@{
+    ViewData["Title"] = "Edit Course";
+}
+
+<h2>Edit Course</h2>
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="EditCourse" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label>Title</label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Description</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+    <div class="mb-3">
+        <label>Price</label>
+        <input asp-for="Price" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Category</label>
+        <select asp-for="CategoryId" class="form-control">
+            @foreach (var cat in (List<EduLearn.Models.Category>)ViewBag.Categories)
+            {
+                <option value="@cat.Id">@cat.Name</option>
+            }
+        </select>
+    </div>
+    @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
+    {
+        <div class="mb-3">
+            <img src="@Model.ThumbnailPath" style="max-height:120px;" class="d-block mb-2" />
+        </div>
+    }
+    <div class="mb-3">
+        <label>Replace Thumbnail Image</label>
+        <input type="file" name="Thumbnail" class="form-control" accept="image/*" />
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

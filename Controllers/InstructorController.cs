@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using EduLearn.Data;
 using EduLearn.Models;
 using EduLearn.Models.ViewModels;
+using System.Linq;
 
 namespace EduLearn.Controllers
 {
@@ -25,17 +26,26 @@ namespace EduLearn.Controllers
         // ---------------- Dashboard ----------------
 
         // Instructor dashboard — shows only THIS instructor's courses
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
             var courses = _context.Courses.Where(c => c.InstructorId == userId).ToList();
+
+            var user = await _userManager.FindByIdAsync(userId);
+            ViewBag.IsApproved = user?.IsApproved ?? false;
+
             return View(courses);
         }
 
         // ---------------- Course ----------------
 
-        public IActionResult CreateCourse()
+        public async Task<IActionResult> CreateCourse()
         {
+            if (!await IsCurrentInstructorApproved())
+            {
+                return RedirectToAction("Index");
+            }
+
             ViewBag.Categories = _context.Categories.ToList();
             return View();
         }
@@ -43,6 +53,11 @@ namespace EduLearn.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCourse(Course course, IFormFile? Thumbnail)
         {
+            if (!await IsCurrentInstructorApproved())
+            {
+                return RedirectToAction("Index");
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.Categories = _context.Categories.ToList();
@@ -50,6 +65,7 @@ namespace EduLearn.Controllers
             }
 
             course.InstructorId = _userManager.GetUserId(User);
+            course.CourseCode = GenerateCourseCode();
 
             if (Thumbnail != null && Thumbnail.Length > 0)
             {
@@ -74,14 +90,95 @@ namespace EduLearn.Controllers
         // View a course's modules (instructor's own course only)
         public IActionResult CourseDetails(int id)
         {
+            var userId = _userManager.GetUserId(User);
+
             var course = _context.Courses
                 .Include(c => c.Modules)
                 .ThenInclude(m => m.Lessons)
-                .FirstOrDefault(c => c.Id == id);
+                .ThenInclude(l => l.Assignments)
+                .FirstOrDefault(c => c.Id == id && c.InstructorId == userId);
 
             if (course == null) return NotFound();
 
             return View(course);
+        }
+
+        public IActionResult EditCourse(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var course = _context.Courses.FirstOrDefault(c => c.Id == id && c.InstructorId == userId);
+            if (course == null) return NotFound();
+
+            ViewBag.Categories = _context.Categories.ToList();
+            return View(course);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditCourse(int id, Course course, IFormFile? Thumbnail)
+        {
+            var userId = _userManager.GetUserId(User);
+            var existing = _context.Courses.FirstOrDefault(c => c.Id == id && c.InstructorId == userId);
+            if (existing == null) return NotFound();
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Categories = _context.Categories.ToList();
+                return View(course);
+            }
+
+            existing.Title = course.Title;
+            existing.Description = course.Description;
+            existing.Price = course.Price;
+            existing.CategoryId = course.CategoryId;
+
+            if (Thumbnail != null && Thumbnail.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "thumbnails");
+                var uniqueFileName = Guid.NewGuid().ToString() + "_" + Thumbnail.FileName;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await Thumbnail.CopyToAsync(stream);
+                }
+
+                existing.ThumbnailPath = "/uploads/thumbnails/" + uniqueFileName;
+            }
+
+            _context.SaveChanges();
+
+            return RedirectToAction("Index");
+        }
+
+        public IActionResult DeleteCourse(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var course = _context.Courses
+                .Include(c => c.Category)
+                .FirstOrDefault(c => c.Id == id && c.InstructorId == userId);
+            if (course == null) return NotFound();
+
+            return View(course);
+        }
+
+        [HttpPost, ActionName("DeleteCourse")]
+        public IActionResult DeleteCourseConfirmed(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var course = _context.Courses.FirstOrDefault(c => c.Id == id && c.InstructorId == userId);
+            if (course == null) return NotFound();
+
+            _context.Courses.Remove(course);
+            _context.SaveChanges();
+
+            return RedirectToAction("Index");
+        }
+
+        private async Task<bool> IsCurrentInstructorApproved()
+        {
+            var userId = _userManager.GetUserId(User);
+            var user = await _userManager.FindByIdAsync(userId);
+            return user != null && user.IsApproved;
         }
 
         // ---------------- Module ----------------
@@ -187,6 +284,15 @@ namespace EduLearn.Controllers
                 Options = new List<OptionViewModel> { new OptionViewModel(), new OptionViewModel() }
             });
             return View(model);
+        }
+
+        private string GenerateCourseCode()
+        {
+            var random = new Random();
+            string letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no O/I to avoid confusion with 0/1
+            string code = new string(Enumerable.Range(0, 2).Select(_ => letters[random.Next(letters.Length)]).ToArray());
+            string digits = random.Next(1000, 9999).ToString();
+            return $"{code}-{digits}"; // e.g. "CS-4821"
         }
 
         [HttpPost]

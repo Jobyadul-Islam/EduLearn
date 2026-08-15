@@ -5,7 +5,17 @@
 }
 
 <h2>My Courses</h2>
-<a asp-action="CreateCourse" class="btn btn-primary mb-3">+ Add Course</a>
+
+@if (!(bool)ViewBag.IsApproved)
+{
+    <div class="alert alert-warning">
+        Your instructor account is pending Admin approval. You can't publish new courses until an admin approves your account.
+    </div>
+}
+else
+{
+    <a asp-action="CreateCourse" class="btn btn-primary mb-3">+ Add Course</a>
+}
 
 <div class="row">
     @foreach (var course in Model)
@@ -20,7 +30,8 @@
                     <h5 class="card-title">@course.Title</h5>
                     <p class="card-text"><strong>$@course.Price</strong></p>
                     <a asp-action="CourseDetails" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary">Manage Content</a>
-                    <p class="card-text"><strong>$@course.Price</strong></p>
+                    <a asp-action="EditCourse" asp-route-id="@course.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <a asp-action="DeleteCourse" asp-route-id="@course.Id" class="btn btn-sm btn-outline-danger">Delete</a>
                 </div>
             </div>
         </div>

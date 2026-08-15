@@ -9,10 +9,12 @@ namespace EduLearn.Areas.Identity.Pages.Account
     public class LoginModel : PageModel
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public LoginModel(SignInManager<ApplicationUser> signInManager)
+        public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
         {
             _signInManager = signInManager;
+            _userManager = userManager;
         }
 
         [BindProperty]
@@ -32,6 +34,13 @@ namespace EduLearn.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();
+
+            var existingUser = await _userManager.FindByEmailAsync(Input.Email);
+            if (existingUser != null && !existingUser.IsActive)
+            {
+                ModelState.AddModelError(string.Empty, "This account has been deactivated. Contact an administrator.");
+                return Page();
+            }
 
             var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: false);
 

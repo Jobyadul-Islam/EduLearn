@@ -15,6 +15,11 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.AccessDeniedPath = "/Home/AccessDenied";
+});
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -30,6 +35,10 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}")
+    .WithStaticAssets();
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
@@ -43,6 +52,24 @@ using (var scope = app.Services.CreateScope())
     {
         if (!await roleManager.RoleExistsAsync(role))
             await roleManager.CreateAsync(new IdentityRole(role));
+    }
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    const string adminEmail = "admin@edulearn.com";
+    if (await userManager.FindByEmailAsync(adminEmail) == null)
+    {
+        var admin = new ApplicationUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true,
+            FullName = "EduLearn Admin",
+            IsApproved = true,
+            IsActive = true
+        };
+        var result = await userManager.CreateAsync(admin, "Admin@123");
+        if (result.Succeeded)
+            await userManager.AddToRoleAsync(admin, "Admin");
     }
 }
 
