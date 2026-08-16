@@ -1,39 +1,59 @@
-﻿@model EduLearn.Models.Course
+@model EduLearn.Models.Course
 
 @{
     ViewData["Title"] = Model.Title;
 }
 
-<h2>@Model.Title</h2>
-<p>@Model.Description</p>
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to My Courses</a>
 
-<a asp-action="CreateModule" asp-route-courseId="@Model.Id" class="btn btn-primary mb-3">+ Add Module</a>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-4">
+    <div>
+        <span class="code-badge mb-2 d-inline-block">@Model.CourseCode</span>
+        <h2 class="mb-1">@Model.Title</h2>
+        <p class="text-muted-2 mb-0">@Model.Description</p>
+    </div>
+    <a asp-action="CreateModule" asp-route-courseId="@Model.Id" class="btn btn-primary">+ Add Module</a>
+</div>
+
+@if (!Model.Modules.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No modules yet. Add your first module to start building this course.</p>
+    </div>
+}
 
 @foreach (var module in Model.Modules)
 {
     <div class="card mb-3">
-        <div class="card-header">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <strong>@module.Title</strong>
-            <a asp-action="CreateLesson" asp-route-moduleId="@module.Id" class="btn btn-sm btn-secondary float-end">+ Add Lesson</a>
+            <a asp-action="CreateLesson" asp-route-moduleId="@module.Id" class="btn btn-sm btn-secondary">+ Add Lesson</a>
         </div>
         <ul class="list-group list-group-flush">
             @foreach (var lesson in module.Lessons)
             {
                 <li class="list-group-item">
-                    @lesson.Title
-                    @if (!string.IsNullOrEmpty(lesson.FilePath))
-                    {
-                        <a href="@lesson.FilePath" target="_blank" class="ms-2">[View File]</a>
-                    }
-                    <a asp-action="CreateAssignment" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-secondary float-end">+ Add Assignment</a>
-                    <a asp-action="CreateQuiz" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-info float-end me-2">+ Add Quiz</a>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            @lesson.Title
+                            @if (!string.IsNullOrEmpty(lesson.FilePath))
+                            {
+                                <a href="@lesson.FilePath" target="_blank" class="ms-2 small">[View File]</a>
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a asp-action="CreateAssignment" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-secondary">+ Assignment</a>
+                            <a asp-action="CreateQuiz" asp-route-lessonId="@lesson.Id" class="btn btn-sm btn-outline-info">+ Quiz</a>
+                        </div>
+                    </div>
 
                     @if (lesson.Assignments != null && lesson.Assignments.Any())
                     {
                         <ul class="list-unstyled mt-2 ms-3 mb-0">
                             @foreach (var assignment in lesson.Assignments)
                             {
-                                <li class="small text-muted">
+                                <li class="small text-muted-2">
                                     Assignment: @assignment.Title — due @assignment.DueDate.ToShortDateString()
                                 </li>
                             }
@@ -44,5 +64,3 @@
         </ul>
     </div>
 }
-
-<a asp-action="Index" class="btn btn-link">Back to My Courses</a>

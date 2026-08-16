@@ -30,6 +30,9 @@ namespace EduLearn.Models
 
         public string? ThumbnailPath { get; set; }
 
+        public CourseStatus Status { get; set; } = CourseStatus.Pending;
+        public string? RejectionReason { get; set; }
+
         [ValidateNever]
         public ICollection<Module> Modules { get; set; }
 

@@ -1,8 +1,95 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@using Microsoft.AspNetCore.Identity
+@using EduLearn.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@model List<Course>
+
+@{
+    ViewData["Title"] = "EduLearn — Learn Without Limits";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<section class="hero mb-5">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="display-5 mb-3">Build real skills, on your own schedule.</h1>
+            <p class="lead mb-4">EduLearn connects students with instructor-led courses across programming, design, and more — track your progress, submit assignments, and take quizzes, all in one place.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Course" asp-action="Index" class="btn btn-light btn-lg">Browse Courses</a>
+                @if (!SignInManager.IsSignedIn(User))
+                {
+                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-light btn-lg">Create Your Free Account</a>
+                }
+                else if (User.IsInRole("Student"))
+                {
+                    <a asp-controller="Course" asp-action="MyEnrollments" class="btn btn-outline-light btn-lg">Continue Learning</a>
+                }
+                else if (User.IsInRole("Instructor"))
+                {
+                    <a asp-controller="Instructor" asp-action="Index" class="btn btn-outline-light btn-lg">Go to Dashboard</a>
+                }
+                else if (User.IsInRole("Admin"))
+                {
+                    <a asp-area="Admin" asp-controller="Admin" asp-action="Index" class="btn btn-outline-light btn-lg">Go to Dashboard</a>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row text-center g-3 mb-5">
+    <div class="col-md-4">
+        <div class="fs-2 fw-bold" style="color:var(--color-primary)">@ViewBag.TotalCourses</div>
+        <div class="text-muted-2">Courses available</div>
+    </div>
+    <div class="col-md-4">
+        <div class="fs-2 fw-bold" style="color:var(--color-primary)">@ViewBag.TotalCategories</div>
+        <div class="text-muted-2">Categories</div>
+    </div>
+    <div class="col-md-4">
+        <div class="fs-2 fw-bold" style="color:var(--color-primary)">@ViewBag.TotalStudents</div>
+        <div class="text-muted-2">Students enrolled</div>
+    </div>
 </div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="section-title h4 mb-0">Featured Courses</h2>
+    <a asp-controller="Course" asp-action="Index" class="text-decoration-none fw-semibold">View all →</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No courses have been published yet. Check back soon.</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var course in Model)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card course-card h-100">
+                    @if (!string.IsNullOrEmpty(course.ThumbnailPath))
+                    {
+                        <img src="@course.ThumbnailPath" class="card-img-top" alt="@course.Title" />
+                    }
+                    else
+                    {
+                        <div class="course-thumb-placeholder">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                        </div>
+                    }
+                    <div class="card-body d-flex flex-column">
+                        <span class="code-badge mb-2 align-self-start">@course.CourseCode</span>
+                        <h5 class="card-title">@course.Title</h5>
+                        <p class="text-muted-2 small mb-2">@course.Category?.Name</p>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <strong>@(course.Price == 0 ? "Free" : $"${course.Price}")</strong>
+                            <a asp-controller="Course" asp-action="Details" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary">View Course</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

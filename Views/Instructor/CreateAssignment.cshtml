@@ -1,25 +1,29 @@
-﻿@model EduLearn.Models.Assignment
+@model EduLearn.Models.Assignment
 
 @{
     ViewData["Title"] = "Add Assignment";
 }
 
-<h2>Add Assignment</h2>
-<div asp-validation-summary="All" class="text-danger"></div>
+<div class="mx-auto" style="max-width:560px;">
+    <h2 class="section-title mb-4">Add Assignment</h2>
 
-<form asp-action="CreateAssignment" method="post">
-    <input type="hidden" name="LessonId" value="@ViewBag.LessonId" />
-    <div class="mb-3">
-        <label>Title</label>
-        <input asp-for="Title" class="form-control" />
+    <div class="card form-card">
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        <form asp-action="CreateAssignment" method="post">
+            <input type="hidden" name="LessonId" value="@ViewBag.LessonId" />
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input asp-for="Title" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Due Date</label>
+                <input asp-for="DueDate" type="datetime-local" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
     </div>
-    <div class="mb-3">
-        <label>Description</label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-    </div>
-    <div class="mb-3">
-        <label>Due Date</label>
-        <input asp-for="DueDate" type="datetime-local" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-primary">Save</button>
-</form>
+</div>

@@ -30,6 +30,8 @@ namespace EduLearn.Controllers
         {
             var courses = _context.Courses
                 .Include(c => c.Category)
+                .Include(c => c.Instructor)
+                .Where(c => c.Status == CourseStatus.Approved)
                 .ToList();
 
             return View(courses);
@@ -40,30 +42,63 @@ namespace EduLearn.Controllers
         {
             var course = _context.Courses
                 .Include(c => c.Category)
+                .Include(c => c.Instructor)
                 .Include(c => c.Modules)
                 .ThenInclude(m => m.Lessons)
                 .FirstOrDefault(c => c.Id == id);
 
             if (course == null) return NotFound();
 
+            if (course.Status != CourseStatus.Approved)
+            {
+                // Only the owning instructor or an Admin may preview a course that isn't live yet
+                var canPreview = User.Identity.IsAuthenticated &&
+                    (User.IsInRole("Admin") || _userManager.GetUserId(User) == course.InstructorId);
+
+                if (!canPreview) return NotFound();
+            }
+
+            ViewBag.FreeLessonIds = GetFreePreviewLessonIds(id);
+
             if (User.Identity.IsAuthenticated)
             {
                 var userId = _userManager.GetUserId(User);
-                ViewBag.IsEnrolled = _context.Enrollments.Any(e => e.CourseId == id && e.StudentId == userId);
+                var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == id && e.StudentId == userId);
+
+                ViewBag.IsEnrolled = enrollment != null;
+                ViewBag.HasFullAccess = course.Price == 0 || (enrollment?.IsPaid ?? false);
             }
             else
             {
                 ViewBag.IsEnrolled = false;
+                ViewBag.HasFullAccess = course.Price == 0;
             }
 
             return View(course);
         }
 
-        [Authorize]
+        // First 2 lessons of a course (by creation order) are free to preview even without payment
+        private List<int> GetFreePreviewLessonIds(int courseId)
+        {
+            return _context.Lessons
+                .Where(l => l.Module.CourseId == courseId)
+                .OrderBy(l => l.Id)
+                .Take(2)
+                .Select(l => l.Id)
+                .ToList();
+        }
+
+        [Authorize(Roles = "Student")]
         [HttpPost]
         public IActionResult Enroll(int courseId)
         {
             var userId = _userManager.GetUserId(User);
+
+            var course = _context.Courses.Find(courseId);
+            if (course == null || course.Status != CourseStatus.Approved)
+            {
+                return NotFound();
+            }
 
             bool alreadyEnrolled = _context.Enrollments
                 .Any(e => e.CourseId == courseId && e.StudentId == userId);
@@ -74,7 +109,8 @@ namespace EduLearn.Controllers
                 {
                     CourseId = courseId,
                     StudentId = userId,
-                    EnrollDate = DateTime.Now
+                    EnrollDate = DateTime.Now,
+                    IsPaid = false
                 };
                 _context.Enrollments.Add(enrollment);
                 _context.SaveChanges();
@@ -83,15 +119,75 @@ namespace EduLearn.Controllers
             return RedirectToAction("Details", new { id = courseId });
         }
 
+        [Authorize(Roles = "Student")]
+        public IActionResult Checkout(int courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var course = _context.Courses.Include(c => c.Category).FirstOrDefault(c => c.Id == courseId);
+            if (course == null) return NotFound();
+
+            var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            if (enrollment == null)
+            {
+                // Must enroll (free) before paying to unlock the rest of the course
+                return RedirectToAction("Details", new { id = courseId });
+            }
+
+            if (course.Price == 0 || enrollment.IsPaid)
+            {
+                return RedirectToAction("Details", new { id = courseId });
+            }
+
+            return View(course);
+        }
+
+        [Authorize(Roles = "Student")]
+        [HttpPost]
+        public IActionResult ConfirmPayment(int courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            if (enrollment == null) return NotFound();
+
+            enrollment.IsPaid = true;
+            enrollment.PaymentDate = DateTime.Now;
+            _context.SaveChanges();
+
+            return RedirectToAction("Details", new { id = courseId });
+        }
+
         [Authorize]
         public IActionResult MyEnrollments()
         {
+            // Instructors/Admins don't take courses — send them to the dashboard that matches their role
+            if (User.IsInRole("Instructor"))
+            {
+                return RedirectToAction("Index", "Instructor");
+            }
+            if (User.IsInRole("Admin"))
+            {
+                return RedirectToAction("Index", "Admin", new { area = "Admin" });
+            }
+
             var userId = _userManager.GetUserId(User);
 
             var enrollments = _context.Enrollments
                 .Include(e => e.Course)
                 .Where(e => e.StudentId == userId)
                 .ToList();
+
+            var progress = new Dictionary<int, int>();
+            foreach (var enrollment in enrollments)
+            {
+                var totalLessons = _context.Lessons.Count(l => l.Module.CourseId == enrollment.CourseId);
+                var completedLessons = _context.LessonProgresses.Count(p =>
+                    p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == enrollment.CourseId);
+
+                progress[enrollment.CourseId] = totalLessons == 0 ? 0 : (int)Math.Round(completedLessons * 100.0 / totalLessons);
+            }
+            ViewBag.ProgressByCourseId = progress;
 
             return View(enrollments);
         }
@@ -110,12 +206,22 @@ namespace EduLearn.Controllers
             var courseId = lesson.Module.Course.Id;
             var userId = _userManager.GetUserId(User);
 
-            bool isEnrolled = _context.Enrollments.Any(e => e.CourseId == courseId && e.StudentId == userId);
+            var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
 
-            if (!isEnrolled)
+            if (enrollment == null)
             {
                 return Forbid();
             }
+
+            bool hasFullAccess = lesson.Module.Course.Price == 0 || enrollment.IsPaid;
+            bool isFreePreview = GetFreePreviewLessonIds(courseId).Contains(id);
+
+            if (!hasFullAccess && !isFreePreview)
+            {
+                return RedirectToAction("Checkout", new { courseId });
+            }
+
+            ViewBag.IsFreePreview = isFreePreview;
 
             ViewBag.IsCompleted = _context.LessonProgresses
                 .Any(p => p.LessonId == id && p.StudentId == userId && p.IsCompleted);

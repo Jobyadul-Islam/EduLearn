@@ -1,0 +1,88 @@
+@model List<EduLearn.Models.Course>
+
+@{
+    ViewData["Title"] = "Pending Courses";
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">Pending Course Approvals</h2>
+    <p class="text-muted-2">Review new and edited courses before they go live on EduLearn.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        <p class="mb-0">You're all caught up — no courses waiting for review.</p>
+    </div>
+}
+else
+{
+    @foreach (var course in Model)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-2 mb-3 mb-md-0">
+                        @if (!string.IsNullOrEmpty(course.ThumbnailPath))
+                        {
+                            <img src="@course.ThumbnailPath" class="img-fluid rounded" style="max-height:100px; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div class="course-thumb-placeholder rounded" style="height:80px;">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-7 mb-3 mb-md-0">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="code-badge">@course.CourseCode</span>
+                            <span class="badge text-bg-light border">@course.Category?.Name</span>
+                        </div>
+                        <h5 class="mb-1">@course.Title</h5>
+                        <p class="small text-muted-2 mb-1">@course.Description</p>
+                        <p class="small mb-0">
+                            By <strong>@course.Instructor?.FullName</strong> ·
+                            @(course.Price == 0 ? "Free" : $"${course.Price}")
+                        </p>
+                    </div>
+                    <div class="col-md-3 text-md-end">
+                        <div class="d-flex flex-column gap-2">
+                            <a asp-controller="Course" asp-action="Details" asp-route-id="@course.Id" asp-area="" target="_blank" class="btn btn-sm btn-outline-secondary">Preview</a>
+                            <form asp-action="ApproveCourse" asp-route-id="@course.Id" method="post">
+                                <button type="submit" class="btn btn-sm btn-success w-100">Approve</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal-@course.Id">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="rejectModal-@course.Id" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form asp-action="RejectCourse" asp-route-id="@course.Id" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Reject "@course.Title"</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Reason (optional — shown to the instructor)</label>
+                            <textarea name="reason" class="form-control" rows="3" placeholder="e.g. Please add more lesson content before resubmitting."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger">Reject Course</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}

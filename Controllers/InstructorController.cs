@@ -66,6 +66,8 @@ namespace EduLearn.Controllers
 
             course.InstructorId = _userManager.GetUserId(User);
             course.CourseCode = GenerateCourseCode();
+            course.Status = CourseStatus.Pending;
+            course.RejectionReason = null;
 
             if (Thumbnail != null && Thumbnail.Length > 0)
             {
@@ -130,6 +132,8 @@ namespace EduLearn.Controllers
             existing.Description = course.Description;
             existing.Price = course.Price;
             existing.CategoryId = course.CategoryId;
+            existing.Status = CourseStatus.Pending;
+            existing.RejectionReason = null;
 
             if (Thumbnail != null && Thumbnail.Length > 0)
             {
@@ -290,9 +294,19 @@ namespace EduLearn.Controllers
         {
             var random = new Random();
             string letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no O/I to avoid confusion with 0/1
-            string code = new string(Enumerable.Range(0, 2).Select(_ => letters[random.Next(letters.Length)]).ToArray());
-            string digits = random.Next(1000, 9999).ToString();
-            return $"{code}-{digits}"; // e.g. "CS-4821"
+
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                string code = new string(Enumerable.Range(0, 2).Select(_ => letters[random.Next(letters.Length)]).ToArray());
+                string digits = random.Next(1000, 9999).ToString();
+                string candidate = $"{code}-{digits}"; // e.g. "CS-4821"
+
+                if (!_context.Courses.Any(c => c.CourseCode == candidate))
+                    return candidate;
+            }
+
+            // Extremely unlikely fallback: guarantee uniqueness with a GUID fragment
+            return $"EDU-{Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper()}";
         }
 
         [HttpPost]

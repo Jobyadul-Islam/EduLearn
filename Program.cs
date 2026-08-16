@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Local-only overrides (e.g. real admin seed credentials) — gitignored, never committed
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -55,7 +58,8 @@ using (var scope = app.Services.CreateScope())
     }
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    const string adminEmail = "admin@edulearn.com";
+    var adminEmail = app.Configuration["AdminSeed:Email"] ?? "admin@edulearn.com";
+    var adminPassword = app.Configuration["AdminSeed:Password"] ?? "ChangeMe123!";
     if (await userManager.FindByEmailAsync(adminEmail) == null)
     {
         var admin = new ApplicationUser
@@ -67,7 +71,7 @@ using (var scope = app.Services.CreateScope())
             IsApproved = true,
             IsActive = true
         };
-        var result = await userManager.CreateAsync(admin, "Admin@123");
+        var result = await userManager.CreateAsync(admin, adminPassword);
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
     }

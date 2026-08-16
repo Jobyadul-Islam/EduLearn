@@ -1,35 +1,55 @@
 @{
     ViewData["Title"] = "Admin Dashboard";
+    int pendingCourses = (int)ViewBag.PendingCoursesCount;
 }
 
-<h2>Admin Dashboard</h2>
+<div class="mb-4">
+    <h2 class="section-title mb-1">Admin Dashboard</h2>
+    <p class="text-muted-2">Platform overview and moderation queue.</p>
+</div>
 
-<div class="row mt-4">
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Total Users</h5>
-                <p class="card-text fs-2">@ViewBag.TotalUsers</p>
-            </div>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value">@ViewBag.TotalUsers</div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card text-white bg-success mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Total Courses</h5>
-                <p class="card-text fs-2">@ViewBag.TotalCourses</p>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-info">
+            <div class="stat-label">Total Courses</div>
+            <div class="stat-value">@ViewBag.TotalCourses</div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card text-white bg-warning mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Total Enrollments</h5>
-                <p class="card-text fs-2">@ViewBag.TotalEnrollments</p>
-            </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-success">
+            <div class="stat-label">Total Enrollments</div>
+            <div class="stat-value">@ViewBag.TotalEnrollments</div>
         </div>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="PendingCourses" class="text-decoration-none">
+            <div class="stat-card stat-warning">
+                <div class="stat-label">Pending Course Approvals</div>
+                <div class="stat-value">@pendingCourses</div>
+            </div>
+        </a>
     </div>
 </div>
 
-<a asp-controller="Category" asp-action="Index" asp-area="" class="btn btn-secondary">Manage Categories</a>
-<a asp-action="Users" class="btn btn-secondary">Manage Users</a>
+@if (pendingCourses > 0)
+{
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <span>
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+            <strong>@pendingCourses</strong> course@(pendingCourses == 1 ? "" : "s") waiting for review.
+        </span>
+        <a asp-action="PendingCourses" class="btn btn-sm btn-warning">Review Now</a>
+    </div>
+}
+
+<div class="d-flex gap-2">
+    <a asp-controller="Category" asp-action="Index" asp-area="" class="btn btn-outline-secondary">Manage Categories</a>
+    <a asp-action="Users" class="btn btn-outline-secondary">Manage Users</a>
+    <a asp-action="PendingCourses" class="btn btn-outline-secondary">Pending Courses</a>
+</div>

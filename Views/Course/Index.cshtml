@@ -1,28 +1,56 @@
-﻿@model List<EduLearn.Models.Course>
+@model List<EduLearn.Models.Course>
 
 @{
     ViewData["Title"] = "All Courses";
 }
 
-<h2>Explore Courses</h2>
+<div class="mb-4">
+    <h2 class="section-title">Explore Courses</h2>
+    <p class="text-muted-2">Browse every published course on EduLearn.</p>
+</div>
 
-<div class="row">
-    @foreach (var course in Model)
-    {
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                @if (!string.IsNullOrEmpty(course.ThumbnailPath))
-                {
-                    <img src="@course.ThumbnailPath" class="card-img-top" style="height:180px; object-fit:cover;" />
-                }
-                <div class="card-body">
-                    <span class="badge bg-secondary mb-2">@course.Category?.Name</span>
-                    <h5 class="card-title">@course.Title</h5>
-                    <p class="card-text">@course.Description</p>
-                    <p class="card-text"><strong>$@course.Price</strong></p>
-                    <a asp-action="Details" asp-route-id="@course.Id" class="btn btn-primary">View Course</a>
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No courses have been published yet. Check back soon.</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var course in Model)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card course-card h-100">
+                    @if (!string.IsNullOrEmpty(course.ThumbnailPath))
+                    {
+                        <img src="@course.ThumbnailPath" class="card-img-top" alt="@course.Title" />
+                    }
+                    else
+                    {
+                        <div class="course-thumb-placeholder">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                        </div>
+                    }
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="code-badge">@course.CourseCode</span>
+                            <span class="badge text-bg-light border">@course.Category?.Name</span>
+                        </div>
+                        <h5 class="card-title">@course.Title</h5>
+                        <p class="card-text text-muted-2 small">@course.Description</p>
+                        @if (course.Instructor != null)
+                        {
+                            <p class="small text-muted-2 mb-2">By @course.Instructor.FullName</p>
+                        }
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <strong>@(course.Price == 0 ? "Free" : $"${course.Price}")</strong>
+                            <a asp-action="Details" asp-route-id="@course.Id" class="btn btn-sm btn-primary">View Course</a>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    }
-</div>
+        }
+    </div>
+}

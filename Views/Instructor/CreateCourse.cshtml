@@ -1,38 +1,45 @@
-﻿@model EduLearn.Models.Course
+@model EduLearn.Models.Course
 
 @{
     ViewData["Title"] = "Add Course";
 }
 
-<h2>Add Course</h2>
-<div asp-validation-summary="All" class="text-danger"></div>
+<div class="mx-auto" style="max-width:640px;">
+    <h2 class="section-title mb-3">Add Course</h2>
+    <p class="text-muted-2 mb-4">New courses are reviewed by an Admin before they go live.</p>
 
-<form asp-action="CreateCourse" method="post" enctype="multipart/form-data">
-    <div class="mb-3">
-        <label>Title</label>
-        <input asp-for="Title" class="form-control" />
+    <div class="card form-card">
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        <form asp-action="CreateCourse" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input asp-for="Title" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Price ($)</label>
+                <input asp-for="Price" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <select asp-for="CategoryId" class="form-select">
+                    @foreach (var cat in (List<EduLearn.Models.Category>)ViewBag.Categories)
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Thumbnail Image</label>
+                <input type="file" name="Thumbnail" class="form-control" accept="image/*" />
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Submit for Review</button>
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
-    <div class="mb-3">
-        <label>Description</label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-    </div>
-    <div class="mb-3">
-        <label>Price</label>
-        <input asp-for="Price" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>Category</label>
-        <select asp-for="CategoryId" class="form-control">
-            @foreach (var cat in (List<EduLearn.Models.Category>)ViewBag.Categories)
-            {
-                <option value="@cat.Id">@cat.Name</option>
-            }
-        </select>
-    </div>
-    <div class="mb-3">
-        <label>Thumbnail Image</label>
-        <input type="file" name="Thumbnail" class="form-control" accept="image/*" />
-    </div>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
+</div>

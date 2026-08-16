@@ -4,19 +4,24 @@
     ViewData["Title"] = "Delete Course";
 }
 
-<h2>Delete Course</h2>
-<p>Are you sure you want to delete <strong>@Model.Title</strong>? This will also remove all its modules, lessons, assignments, and quizzes.</p>
+<div class="mx-auto" style="max-width:560px;">
+    <h2 class="section-title mb-3">Delete Course</h2>
 
-<dl class="row">
-    <dt class="col-sm-2">Title</dt>
-    <dd class="col-sm-10">@Model.Title</dd>
-    <dt class="col-sm-2">Category</dt>
-    <dd class="col-sm-10">@Model.Category?.Name</dd>
-    <dt class="col-sm-2">Price</dt>
-    <dd class="col-sm-10">$@Model.Price</dd>
-</dl>
+    <div class="card form-card">
+        <p>Are you sure you want to delete <strong>@Model.Title</strong>? This will also remove all its modules, lessons, assignments, and quizzes.</p>
 
-<form asp-action="DeleteCourse" asp-route-id="@Model.Id" method="post">
-    <button type="submit" class="btn btn-danger">Delete</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
+        <dl class="row mb-4">
+            <dt class="col-sm-4">Course Code</dt>
+            <dd class="col-sm-8"><span class="code-badge">@Model.CourseCode</span></dd>
+            <dt class="col-sm-4">Category</dt>
+            <dd class="col-sm-8">@Model.Category?.Name</dd>
+            <dt class="col-sm-4">Price</dt>
+            <dd class="col-sm-8">@(Model.Price == 0 ? "Free" : $"${Model.Price}")</dd>
+        </dl>
+
+        <form asp-action="DeleteCourse" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

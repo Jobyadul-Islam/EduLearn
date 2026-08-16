@@ -13,5 +13,8 @@ namespace EduLearn.Models
         public Course Course { get; set; }
 
         public DateTime EnrollDate { get; set; }
+
+        public bool IsPaid { get; set; }
+        public DateTime? PaymentDate { get; set; }
     }
 }

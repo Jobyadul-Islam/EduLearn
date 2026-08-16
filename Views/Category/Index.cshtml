@@ -1,31 +1,44 @@
-﻿@model List<EduLearn.Models.Category>
+@model List<EduLearn.Models.Category>
 
 @{
     ViewData["Title"] = "Categories";
 }
 
-<h2>Categories</h2>
-<a asp-action="Create" class="btn btn-primary mb-3">+ Add Category</a>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h2 class="section-title mb-0">Categories</h2>
+    <a asp-action="Create" class="btn btn-primary">+ Add Category</a>
+</div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var cat in Model)
-        {
-            <tr>
-                <td>@cat.Name</td>
-                <td>@cat.Description</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@cat.Id" class="btn btn-sm btn-secondary">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@cat.Id" class="btn btn-sm btn-danger">Delete</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <p class="mb-0">No categories yet. Add one to get started.</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@cat.Name</td>
+                        <td class="text-muted-2">@cat.Description</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@cat.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@cat.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
