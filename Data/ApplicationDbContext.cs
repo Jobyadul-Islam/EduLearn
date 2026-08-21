@@ -21,6 +21,8 @@ namespace EduLearn.Data
         public DbSet<QuizResult> QuizResults { get; set; }
         public DbSet<AssignmentSubmission> AssignmentSubmissions { get; set; }
         public DbSet<LessonProgress> LessonProgresses { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<InstructorApplicationPin> InstructorApplicationPins { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -125,6 +127,18 @@ namespace EduLearn.Data
                 .HasOne(r => r.Student)
                 .WithMany()
                 .HasForeignKey(r => r.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Notification>()
+                .HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<InstructorApplicationPin>()
+                .HasOne(p => p.GeneratedByAdmin)
+                .WithMany()
+                .HasForeignKey(p => p.GeneratedByAdminId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

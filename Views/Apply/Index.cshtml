@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "Apply as Instructor";
+}
+
+<div class="auth-card">
+    <div class="text-center mb-4">
+        <svg class="icon" style="width:2.5rem;height:2.5rem;color:var(--color-primary);" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+        <h2 class="section-title mt-2 mb-1">Apply as Instructor</h2>
+        <p class="text-muted-2">Enter the 6-digit PIN we emailed you to start your application.</p>
+    </div>
+
+    <div class="card form-card">
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        <form asp-action="VerifyPin" method="post">
+            <div class="mb-4">
+                <label class="form-label">6-Digit PIN</label>
+                <input type="text" name="pin" class="form-control text-center" style="font-size:1.5rem; letter-spacing:.5rem;" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Verify PIN</button>
+        </form>
+    </div>
+
+    <div class="card form-card mt-3">
+        <p class="mb-0 small text-muted-2">
+            Don't have a PIN yet? See the Contact section on the <a asp-controller="Home" asp-action="Index">home page</a> for the admin's email —
+            send a request explaining why you'd like to teach on EduLearn, and the admin will email you a one-time PIN to apply.
+        </p>
+    </div>
+</div>

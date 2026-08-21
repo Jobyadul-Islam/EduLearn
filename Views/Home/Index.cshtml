@@ -5,18 +5,29 @@
 
 @{
     ViewData["Title"] = "EduLearn — Learn Without Limits";
+    var categories = (IEnumerable<dynamic>)ViewBag.TopCategories;
+    string[] categoryIcons = new[]
+    {
+        "<path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20\"/><path d=\"M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z\"/>",
+        "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z\"/>",
+        "<path d=\"M3 3v18h18\"/><path d=\"M18.7 8 13 13.7 9.7 10.4 5 15.1\"/>",
+        "<polyline points=\"16 18 22 12 16 6\"/><polyline points=\"8 6 2 12 8 18\"/>",
+        "<path d=\"M12 20V10\"/><path d=\"M18 20V4\"/><path d=\"M6 20v-4\"/>",
+        "<circle cx=\"12\" cy=\"8\" r=\"5\"/><path d=\"M20 21a8 8 0 0 0-16 0\"/>"
+    };
 }
 
 <section class="hero mb-5">
     <div class="row align-items-center">
         <div class="col-lg-8">
+            <p class="hero-trust mb-2">Trusted by @ViewBag.TotalStudents+ students · @ViewBag.TotalInstructors+ instructors</p>
             <h1 class="display-5 mb-3">Build real skills, on your own schedule.</h1>
             <p class="lead mb-4">EduLearn connects students with instructor-led courses across programming, design, and more — track your progress, submit assignments, and take quizzes, all in one place.</p>
             <div class="d-flex flex-wrap gap-2">
                 <a asp-controller="Course" asp-action="Index" class="btn btn-light btn-lg">Browse Courses</a>
                 @if (!SignInManager.IsSignedIn(User))
                 {
-                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-light btn-lg">Create Your Free Account</a>
+                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-light btn-lg">Create Your Account</a>
                 }
                 else if (User.IsInRole("Student"))
                 {
@@ -33,22 +44,50 @@
             </div>
         </div>
     </div>
+
+    <div class="stats-strip">
+        <div class="stat-pill accent-gold">
+            <div class="stat-pill-value">@ViewBag.TotalCourses+</div>
+            <div class="stat-pill-label">Courses available</div>
+        </div>
+        <div class="stat-pill accent-pink">
+            <div class="stat-pill-value">@ViewBag.TotalStudents+</div>
+            <div class="stat-pill-label">Students enrolled</div>
+        </div>
+        <div class="stat-pill accent-green">
+            <div class="stat-pill-value">@ViewBag.TotalCategories+</div>
+            <div class="stat-pill-label">Categories</div>
+        </div>
+        <div class="stat-pill accent-blue">
+            <div class="stat-pill-value">@ViewBag.TotalInstructors+</div>
+            <div class="stat-pill-label">Instructors</div>
+        </div>
+    </div>
 </section>
 
-<div class="row text-center g-3 mb-5">
-    <div class="col-md-4">
-        <div class="fs-2 fw-bold" style="color:var(--color-primary)">@ViewBag.TotalCourses</div>
-        <div class="text-muted-2">Courses available</div>
+@if (categories != null && categories.Any())
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title h4 mb-0">Top Categories</h2>
+        <a asp-controller="Course" asp-action="Index" class="text-decoration-none fw-semibold">All Categories →</a>
     </div>
-    <div class="col-md-4">
-        <div class="fs-2 fw-bold" style="color:var(--color-primary)">@ViewBag.TotalCategories</div>
-        <div class="text-muted-2">Categories</div>
+    <div class="row mb-5">
+        @{ int catIndex = 0; }
+        @foreach (var cat in categories)
+        {
+            <div class="col-6 col-md-4 col-lg-2 mb-3">
+                <div class="card category-card h-100">
+                    <div class="category-icon accent-@(catIndex % 5)">
+                        <svg class="icon" viewBox="0 0 24 24">@Html.Raw(categoryIcons[catIndex % categoryIcons.Length])</svg>
+                    </div>
+                    <div class="fw-semibold">@cat.Name</div>
+                    <div class="category-count">@cat.CourseCount course@(cat.CourseCount == 1 ? "" : "s")</div>
+                </div>
+            </div>
+            catIndex++;
+        }
     </div>
-    <div class="col-md-4">
-        <div class="fs-2 fw-bold" style="color:var(--color-primary)">@ViewBag.TotalStudents</div>
-        <div class="text-muted-2">Students enrolled</div>
-    </div>
-</div>
+}
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="section-title h4 mb-0">Featured Courses</h2>
@@ -65,6 +104,7 @@
 else
 {
     <div class="row">
+        @{ int cardIndex = 0; }
         @foreach (var course in Model)
         {
             <div class="col-md-4 mb-4">
@@ -75,7 +115,7 @@ else
                     }
                     else
                     {
-                        <div class="course-thumb-placeholder">
+                        <div class="course-thumb-placeholder accent-@(cardIndex % 5)">
                             <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
                         </div>
                     }
@@ -90,6 +130,23 @@ else
                     </div>
                 </div>
             </div>
+            cardIndex++;
         }
     </div>
 }
+
+<div class="card form-card section-spacer">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h2 class="section-title h4 mb-2">Contact</h2>
+            <p class="text-muted-2 mb-1">Want to teach on EduLearn? Email the admin to request a one-time instructor application PIN.</p>
+            <p class="mb-0">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" style="display:none;"/><path d="M22 6c0-1.1-.9-2-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6Z"/><path d="m22 6-10 7L2 6"/></svg>
+                <a href="mailto:@ViewBag.ContactEmail" class="fw-semibold">@ViewBag.ContactEmail</a>
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a asp-controller="Apply" asp-action="Index" class="btn btn-outline-primary">Apply as Instructor</a>
+        </div>
+    </div>
+</div>

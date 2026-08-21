@@ -1,5 +1,6 @@
 using EduLearn.Data;
 using EduLearn.Models;                              // NEW
+using EduLearn.Services;
 using Microsoft.AspNetCore.Identity;                // NEW
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,19 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Home/AccessDenied";
 });
 
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IChatService, GeminiChatService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(15);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -32,6 +46,7 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthentication();     // NEW — must come before UseAuthorization
 app.UseAuthorization();

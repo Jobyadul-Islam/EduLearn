@@ -26,15 +26,21 @@ namespace EduLearn.Controllers
         }
 
         // Public course listing — no login required
-        public IActionResult Index()
+        public IActionResult Index(string? search)
         {
-            var courses = _context.Courses
+            var query = _context.Courses
                 .Include(c => c.Category)
                 .Include(c => c.Instructor)
-                .Where(c => c.Status == CourseStatus.Approved)
-                .ToList();
+                .Where(c => c.Status == CourseStatus.Approved);
 
-            return View(courses);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(c => c.Title.Contains(search));
+            }
+
+            ViewBag.SearchTerm = search;
+
+            return View(query.ToList());
         }
 
         // Public course details page

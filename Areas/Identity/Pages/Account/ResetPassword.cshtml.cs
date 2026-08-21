@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -6,15 +7,13 @@ using EduLearn.Models;
 
 namespace EduLearn.Areas.Identity.Pages.Account
 {
-    public class RegisterModel : PageModel
+    public class ResetPasswordModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public RegisterModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        public ResetPasswordModel(UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
-            _signInManager = signInManager;
         }
 
         [BindProperty]
@@ -22,9 +21,6 @@ namespace EduLearn.Areas.Identity.Pages.Account
 
         public class InputModel
         {
-            [Required]
-            public string FullName { get; set; }
-
             [Required, EmailAddress]
             public string Email { get; set; }
 
@@ -33,31 +29,42 @@ namespace EduLearn.Areas.Identity.Pages.Account
 
             [DataType(DataType.Password), Compare("Password")]
             public string ConfirmPassword { get; set; }
+
+            [Required]
+            public string Code { get; set; }
         }
 
-        public void OnGet() { }
+        public IActionResult OnGet(string? code, string? email)
+        {
+            if (code == null || email == null)
+            {
+                return RedirectToPage("/Account/Login");
+            }
 
-        // Public self-registration only ever creates Student accounts.
-        // Instructors go through the PIN-gated application flow at /Apply instead.
+            Input = new InputModel
+            {
+                Code = code,
+                Email = email
+            };
+            return Page();
+        }
+
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();
 
-            var user = new ApplicationUser
+            var user = await _userManager.FindByEmailAsync(Input.Email);
+            if (user == null)
             {
-                UserName = Input.Email,
-                Email = Input.Email,
-                FullName = Input.FullName,
-                IsApproved = true
-            };
+                // Don't reveal that the account doesn't exist
+                return RedirectToPage("./ResetPasswordConfirmation");
+            }
 
-            var result = await _userManager.CreateAsync(user, Input.Password);
+            var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, "Student");
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToPage("/Index", new { area = "" });
+                return RedirectToPage("./ResetPasswordConfirmation");
             }
 
             foreach (var error in result.Errors)

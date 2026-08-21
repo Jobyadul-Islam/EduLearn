@@ -2,6 +2,10 @@
 
 @{
     ViewData["Title"] = "Manage Users";
+    string? searchTerm = ViewBag.SearchTerm;
+    string roleFilter = ViewBag.RoleFilter;
+    string statusFilter = ViewBag.StatusFilter;
+    bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchTerm) || roleFilter != "All" || statusFilter != "All";
 }
 
 <a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
@@ -10,6 +14,48 @@
     <h2 class="section-title mb-1">Manage Users</h2>
     <p class="text-muted-2">Approve pending instructors and manage account access.</p>
 </div>
+
+<form asp-action="Users" method="get" class="row g-2 align-items-center mb-3">
+    <div class="col-sm-5 col-md-4">
+        <div class="search-bar" style="max-width:none;">
+            <input type="text" name="search" class="form-control" placeholder="Search by email..." value="@searchTerm" />
+            <button type="submit" class="btn btn-primary">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="col-sm-3 col-md-2">
+        <select name="role" class="form-select" onchange="this.form.submit()">
+            <option value="All" selected="@(roleFilter == "All" ? "selected" : null)">All Roles</option>
+            <option value="Admin" selected="@(roleFilter == "Admin" ? "selected" : null)">Admin</option>
+            <option value="Instructor" selected="@(roleFilter == "Instructor" ? "selected" : null)">Instructor</option>
+            <option value="Student" selected="@(roleFilter == "Student" ? "selected" : null)">Student</option>
+        </select>
+    </div>
+    <div class="col-sm-3 col-md-2">
+        <select name="status" class="form-select" onchange="this.form.submit()">
+            <option value="All" selected="@(statusFilter == "All" ? "selected" : null)">All Statuses</option>
+            <option value="Active" selected="@(statusFilter == "Active" ? "selected" : null)">Active</option>
+            <option value="Deactivated" selected="@(statusFilter == "Deactivated" ? "selected" : null)">Deactivated</option>
+        </select>
+    </div>
+    @if (hasActiveFilters)
+    {
+        <div class="col-sm-auto">
+            <a asp-action="Users" class="btn btn-outline-secondary">Clear filters</a>
+        </div>
+    }
+</form>
+
+@if (hasActiveFilters)
+{
+    <p class="text-muted-2 mb-3">Showing @Model.Count matching user@(Model.Count == 1 ? "" : "s")</p>
+}
+
+@if (TempData["EmailResult"] != null)
+{
+    <div class="alert alert-info">@TempData["EmailResult"]</div>
+}
 
 <div class="card">
     <table class="table table-hover mb-0">
@@ -24,6 +70,12 @@
             </tr>
         </thead>
         <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted-2 py-4">No users match these filters.</td>
+                </tr>
+            }
             @foreach (var user in Model)
             {
                 <tr>
@@ -61,11 +113,18 @@
                         <div class="d-flex flex-wrap gap-2">
                             @if (user.Role == "Instructor" && !user.IsApproved)
                             {
+                                <a asp-action="ViewApplication" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">View Application</a>
                                 <form asp-action="Approve" asp-route-id="@user.Id" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-success">Approve</button>
                                 </form>
                                 <form asp-action="Reject" asp-route-id="@user.Id" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                </form>
+                            }
+                            @if (user.Role == "Instructor" && user.IsApproved)
+                            {
+                                <form asp-action="SendLoginEmail" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('This will reset their password and email new login details to ' + '@user.Email' + '. Continue?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Send Login Email</button>
                                 </form>
                             }
                             <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
