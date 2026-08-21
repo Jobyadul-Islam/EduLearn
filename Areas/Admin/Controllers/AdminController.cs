@@ -115,6 +115,7 @@ namespace EduLearn.Areas.Admin.Controllers
             ViewBag.SearchTerm = search;
             ViewBag.RoleFilter = role ?? "All";
             ViewBag.StatusFilter = status ?? "All";
+            ViewBag.CurrentUserId = _userManager.GetUserId(User);
 
             return View(rows);
         }
@@ -169,6 +170,12 @@ namespace EduLearn.Areas.Admin.Controllers
             if (user == null)
             {
                 TempData["EmailResult"] = "User not found.";
+                return RedirectToAction("Users");
+            }
+
+            if (user.IsApproved || !await _userManager.IsInRoleAsync(user, "Instructor"))
+            {
+                TempData["EmailResult"] = "Login emails can only be sent to pending instructor applicants.";
                 return RedirectToAction("Users");
             }
 

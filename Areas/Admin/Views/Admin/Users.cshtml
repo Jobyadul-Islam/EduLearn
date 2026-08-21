@@ -5,6 +5,7 @@
     string? searchTerm = ViewBag.SearchTerm;
     string roleFilter = ViewBag.RoleFilter;
     string statusFilter = ViewBag.StatusFilter;
+    string currentUserId = ViewBag.CurrentUserId;
     bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchTerm) || roleFilter != "All" || statusFilter != "All";
 }
 
@@ -120,18 +121,22 @@
                                 <form asp-action="Reject" asp-route-id="@user.Id" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
                                 </form>
-                            }
-                            @if (user.Role == "Instructor" && user.IsApproved)
-                            {
                                 <form asp-action="SendLoginEmail" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('This will reset their password and email new login details to ' + '@user.Email' + '. Continue?');">
                                     <button type="submit" class="btn btn-sm btn-outline-primary">Send Login Email</button>
                                 </form>
                             }
-                            <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                    @(user.IsActive ? "Deactivate" : "Activate")
-                                </button>
-                            </form>
+                            @if (user.Id == currentUserId)
+                            {
+                                <span class="badge text-bg-light border align-self-center">This is you</span>
+                            }
+                            else
+                            {
+                                <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        @(user.IsActive ? "Deactivate" : "Activate")
+                                    </button>
+                                </form>
+                            }
                         </div>
                     </td>
                 </tr>
