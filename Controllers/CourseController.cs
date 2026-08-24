@@ -18,12 +18,14 @@ namespace EduLearn.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IWebHostEnvironment _environment;
+        private readonly IEmailService _emailService;
 
-        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
+        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment, IEmailService emailService)
         {
             _context = context;
             _userManager = userManager;
             _environment = environment;
+            _emailService = emailService;
         }
 
         // Public course listing — no login required
@@ -97,11 +99,11 @@ namespace EduLearn.Controllers
 
         [Authorize(Roles = "Student")]
         [HttpPost]
-        public IActionResult Enroll(int courseId)
+        public async Task<IActionResult> Enroll(int courseId)
         {
             var userId = _userManager.GetUserId(User);
 
-            var course = _context.Courses.Find(courseId);
+            var course = _context.Courses.Include(c => c.Instructor).FirstOrDefault(c => c.Id == courseId);
             if (course == null || course.Status != CourseStatus.Approved)
             {
                 return NotFound();
@@ -123,6 +125,17 @@ namespace EduLearn.Controllers
                 };
                 _context.Enrollments.Add(enrollment);
                 _context.SaveChanges();
+
+                var student = await _userManager.GetUserAsync(User);
+                var body = $@"
+                    <p>Hi {System.Net.WebUtility.HtmlEncode(student.FullName)},</p>
+                    <p>You're enrolled in <strong>{System.Net.WebUtility.HtmlEncode(course.Title)}</strong>.</p>
+                    <p><strong>Instructor:</strong> {System.Net.WebUtility.HtmlEncode(course.Instructor?.FullName ?? "TBA")}</p>
+                    <p>Log in to EduLearn any time to start learning.</p>
+                    <p>— EduLearn</p>";
+                // Best-effort: enrollment already succeeded, so a failed/undeliverable email
+                // (expected for made-up test addresses) must not block or roll it back.
+                await _emailService.SendEmailAsync(student.Email, $"You're enrolled in {course.Title}", body);
             }
 
             return RedirectToAction("Details", new { id = courseId });
