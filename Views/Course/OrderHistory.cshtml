@@ -1,0 +1,66 @@
+@model List<EduLearn.Models.Payment>
+
+@{
+    ViewData["Title"] = "Order History";
+}
+
+<div class="mb-4">
+    <h2 class="section-title">Order History</h2>
+    <p class="text-muted-2">Every payment attempt on your account, successful or declined.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No transactions yet.</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Course</th>
+                    <th>Transaction ID</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Receipt</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var payment in Model)
+                {
+                    <tr>
+                        <td>@payment.CreatedAt.ToString("MMM d, yyyy")</td>
+                        <td>@payment.Course.Title</td>
+                        <td class="small text-muted-2">@payment.TransactionId</td>
+                        <td>$@payment.Amount.ToString("0.00")</td>
+                        <td>
+                            @if (payment.Status == EduLearn.Models.PaymentStatus.Success)
+                            {
+                                <span class="status-pill approved">Success</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill rejected">Failed</span>
+                            }
+                        </td>
+                        <td>
+                            @if (payment.Status == EduLearn.Models.PaymentStatus.Success)
+                            {
+                                <a asp-action="Receipt" asp-route-paymentId="@payment.Id" class="btn btn-sm btn-outline-primary">Download</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted-2">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

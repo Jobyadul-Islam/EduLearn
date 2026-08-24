@@ -256,6 +256,39 @@ namespace EduLearn.Controllers
             return View(enrollments);
         }
 
+        [Authorize(Roles = "Student")]
+        public IActionResult OrderHistory()
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var payments = _context.Payments
+                .Include(p => p.Course)
+                .Where(p => p.StudentId == userId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToList();
+
+            return View(payments);
+        }
+
+        [Authorize(Roles = "Student")]
+        public IActionResult Receipt(int paymentId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var payment = _context.Payments
+                .Include(p => p.Course)
+                .FirstOrDefault(p => p.Id == paymentId && p.StudentId == userId);
+
+            if (payment == null || payment.Status != PaymentStatus.Success) return NotFound();
+
+            var user = _context.Users.Find(userId);
+
+            var pdfBytes = InvoiceService.Generate(user.FullName, payment.Course.Title, payment.TransactionId, payment.Amount, payment.CreatedAt);
+
+            var fileName = $"Receipt-{payment.TransactionId}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+
         [Authorize]
         public IActionResult ViewLesson(int id)
         {
