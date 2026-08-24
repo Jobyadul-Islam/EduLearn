@@ -186,15 +186,46 @@ namespace EduLearn.Controllers
                 .ToList();
 
             var progress = new Dictionary<int, int>();
+            var nextLessonByCourseId = new Dictionary<int, int?>();
             foreach (var enrollment in enrollments)
             {
-                var totalLessons = _context.Lessons.Count(l => l.Module.CourseId == enrollment.CourseId);
-                var completedLessons = _context.LessonProgresses.Count(p =>
-                    p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == enrollment.CourseId);
+                var courseLessons = _context.Lessons
+                    .Where(l => l.Module.CourseId == enrollment.CourseId)
+                    .OrderBy(l => l.ModuleId).ThenBy(l => l.Id)
+                    .Select(l => l.Id)
+                    .ToList();
 
-                progress[enrollment.CourseId] = totalLessons == 0 ? 0 : (int)Math.Round(completedLessons * 100.0 / totalLessons);
+                var completedLessonIds = _context.LessonProgresses
+                    .Where(p => p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == enrollment.CourseId)
+                    .Select(p => p.LessonId)
+                    .ToList();
+
+                progress[enrollment.CourseId] = courseLessons.Count == 0
+                    ? 0
+                    : (int)Math.Round(completedLessonIds.Count * 100.0 / courseLessons.Count);
+
+                nextLessonByCourseId[enrollment.CourseId] = courseLessons
+                    .Where(id => !completedLessonIds.Contains(id))
+                    .Select(id => (int?)id)
+                    .FirstOrDefault();
             }
             ViewBag.ProgressByCourseId = progress;
+            ViewBag.NextLessonByCourseId = nextLessonByCourseId;
+
+            var enrolledCourseIds = enrollments.Select(e => e.CourseId).ToList();
+            var submittedAssignmentIds = _context.AssignmentSubmissions
+                .Where(s => s.StudentId == userId)
+                .Select(s => s.AssignmentId)
+                .ToList();
+
+            ViewBag.UpcomingDeadlines = _context.Assignments
+                .Include(a => a.Lesson).ThenInclude(l => l.Module).ThenInclude(m => m.Course)
+                .Where(a => enrolledCourseIds.Contains(a.Lesson.Module.CourseId)
+                    && a.DueDate >= DateTime.Now
+                    && !submittedAssignmentIds.Contains(a.Id))
+                .OrderBy(a => a.DueDate)
+                .Take(5)
+                .ToList();
 
             return View(enrollments);
         }

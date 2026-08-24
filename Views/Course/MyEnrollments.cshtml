@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "My Enrollments";
     var progress = (Dictionary<int, int>)ViewBag.ProgressByCourseId;
+    var nextLesson = (Dictionary<int, int?>)ViewBag.NextLessonByCourseId;
+    var deadlines = (List<EduLearn.Models.Assignment>)ViewBag.UpcomingDeadlines;
 }
 
 <div class="mb-4">
@@ -13,6 +15,25 @@
 @if (TempData["CertificateError"] != null)
 {
     <div class="alert alert-warning">@TempData["CertificateError"]</div>
+}
+
+@if (deadlines != null && deadlines.Any())
+{
+    <div class="card form-card mb-4">
+        <h5 class="mb-3">Upcoming Deadlines</h5>
+        <ul class="list-unstyled mb-0">
+            @foreach (var assignment in deadlines)
+            {
+                <li class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <div>
+                        <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="fw-semibold text-decoration-none">@assignment.Title</a>
+                        <span class="text-muted-2 small"> — @assignment.Lesson.Module.Course.Title</span>
+                    </div>
+                    <span class="status-pill pending">Due @assignment.DueDate.ToShortDateString()</span>
+                </li>
+            }
+        </ul>
+    </div>
 }
 
 @if (!Model.Any())
@@ -69,7 +90,17 @@ else
                         {
                             <a asp-action="Certificate" asp-route-courseId="@enrollment.CourseId" class="btn btn-outline-success mb-2">Download Certificate</a>
                         }
-                        <a asp-action="Details" asp-route-id="@enrollment.CourseId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !enrollment.IsPaid ? "" : "mt-auto")">Continue Learning</a>
+                        @{
+                            var nextLessonId = nextLesson.TryGetValue(enrollment.CourseId, out var nl) ? nl : null;
+                        }
+                        @if (nextLessonId.HasValue && (enrollment.Course.Price == 0 || enrollment.IsPaid))
+                        {
+                            <a asp-action="ViewLesson" asp-route-id="@nextLessonId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !enrollment.IsPaid ? "" : "mt-auto")">Continue Learning</a>
+                        }
+                        else
+                        {
+                            <a asp-action="Details" asp-route-id="@enrollment.CourseId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !enrollment.IsPaid ? "" : "mt-auto")">Continue Learning</a>
+                        }
                     </div>
                 </div>
             </div>
