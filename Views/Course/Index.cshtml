@@ -4,6 +4,7 @@
     ViewData["Title"] = "All Courses";
     string? searchTerm = ViewBag.SearchTerm;
     int? categoryId = ViewBag.CategoryId;
+    string sort = ViewBag.Sort;
     var categories = (List<EduLearn.Models.Category>)ViewBag.Categories;
     bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchTerm) || categoryId.HasValue;
 }
@@ -20,6 +21,10 @@
             {
                 <option value="@cat.Id" selected="@(categoryId == cat.Id ? "selected" : null)">@cat.Name</option>
             }
+        </select>
+        <select name="sort" class="form-select" onchange="this.form.submit()">
+            <option value="newest" selected="@(sort == "newest" ? "selected" : null)">Newest</option>
+            <option value="popular" selected="@(sort == "popular" ? "selected" : null)">Most Popular</option>
         </select>
         <div class="search-bar">
             <input type="text" name="search" class="form-control" placeholder="Search courses..." value="@searchTerm" />

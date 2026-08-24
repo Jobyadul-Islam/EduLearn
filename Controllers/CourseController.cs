@@ -29,7 +29,7 @@ namespace EduLearn.Controllers
         }
 
         // Public course listing — no login required
-        public IActionResult Index(string? search, int? categoryId)
+        public IActionResult Index(string? search, int? categoryId, string? sort)
         {
             var query = _context.Courses
                 .Include(c => c.Category)
@@ -46,8 +46,17 @@ namespace EduLearn.Controllers
                 query = query.Where(c => c.CategoryId == categoryId.Value);
             }
 
+            // No CreatedAt column exists, so Id (assigned in insertion order) is the
+            // same creation-order proxy already used elsewhere in this controller.
+            query = sort switch
+            {
+                "popular" => query.OrderByDescending(c => c.Enrollments.Count),
+                _ => query.OrderByDescending(c => c.Id)
+            };
+
             ViewBag.SearchTerm = search;
             ViewBag.CategoryId = categoryId;
+            ViewBag.Sort = sort ?? "newest";
             ViewBag.Categories = _context.Categories.OrderBy(c => c.Name).ToList();
 
             return View(query.ToList());
