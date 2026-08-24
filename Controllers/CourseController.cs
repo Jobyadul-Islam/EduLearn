@@ -29,7 +29,7 @@ namespace EduLearn.Controllers
         }
 
         // Public course listing — no login required
-        public IActionResult Index(string? search)
+        public IActionResult Index(string? search, int? categoryId)
         {
             var query = _context.Courses
                 .Include(c => c.Category)
@@ -41,7 +41,14 @@ namespace EduLearn.Controllers
                 query = query.Where(c => c.Title.Contains(search));
             }
 
+            if (categoryId.HasValue)
+            {
+                query = query.Where(c => c.CategoryId == categoryId.Value);
+            }
+
             ViewBag.SearchTerm = search;
+            ViewBag.CategoryId = categoryId;
+            ViewBag.Categories = _context.Categories.OrderBy(c => c.Name).ToList();
 
             return View(query.ToList());
         }

@@ -3,6 +3,9 @@
 @{
     ViewData["Title"] = "All Courses";
     string? searchTerm = ViewBag.SearchTerm;
+    int? categoryId = ViewBag.CategoryId;
+    var categories = (List<EduLearn.Models.Category>)ViewBag.Categories;
+    bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchTerm) || categoryId.HasValue;
 }
 
 <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
@@ -10,19 +13,35 @@
         <h2 class="section-title">Explore Courses</h2>
         <p class="text-muted-2 mb-0">Browse every published course on EduLearn.</p>
     </div>
-    <form asp-action="Index" method="get" class="search-bar">
-        <input type="text" name="search" class="form-control" placeholder="Search courses..." value="@searchTerm" />
-        <button type="submit" class="btn btn-primary">
-            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
+    <form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="categoryId" class="form-select" onchange="this.form.submit()">
+            <option value="">All Categories</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat.Id" selected="@(categoryId == cat.Id ? "selected" : null)">@cat.Name</option>
+            }
+        </select>
+        <div class="search-bar">
+            <input type="text" name="search" class="form-control" placeholder="Search courses..." value="@searchTerm" />
+            <button type="submit" class="btn btn-primary">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+        </div>
     </form>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(searchTerm))
+@if (hasActiveFilters)
 {
     <p class="text-muted-2 mb-3">
-        Showing results for "<strong>@searchTerm</strong>"
-        <a asp-action="Index" class="ms-2">Clear search</a>
+        @if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            <text>Showing results for "<strong>@searchTerm</strong>"</text>
+        }
+        @if (categoryId.HasValue)
+        {
+            <text> in <strong>@categories.FirstOrDefault(c => c.Id == categoryId)?.Name</strong></text>
+        }
+        <a asp-action="Index" class="ms-2">Clear filters</a>
     </p>
 }
 
@@ -31,7 +50,7 @@
     <div class="empty-state">
         <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
         <p class="mb-0">
-            @(string.IsNullOrWhiteSpace(searchTerm) ? "No courses have been published yet. Check back soon." : $"No courses match \"{searchTerm}\".")
+            @(hasActiveFilters ? "No courses match these filters." : "No courses have been published yet. Check back soon.")
         </p>
     </div>
 }
