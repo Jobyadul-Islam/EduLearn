@@ -61,7 +61,7 @@ else
                             <span class="code-badge">@enrollment.Course.CourseCode</span>
                             @if (enrollment.Course.Price > 0)
                             {
-                                if (enrollment.IsPaid)
+                                if (enrollment.Status == EduLearn.Models.EnrollmentStatus.Active)
                                 {
                                     <span class="status-pill approved">Paid</span>
                                 }
@@ -82,7 +82,10 @@ else
                                 <div class="progress-bar" role="progressbar" style="width:@pct%" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-                        @if (enrollment.Course.Price > 0 && !enrollment.IsPaid)
+                        @{
+                            var isActive = enrollment.Status == EduLearn.Models.EnrollmentStatus.Active;
+                        }
+                        @if (enrollment.Course.Price > 0 && !isActive)
                         {
                             <a asp-action="Checkout" asp-route-courseId="@enrollment.CourseId" class="btn btn-success mt-auto mb-2">Unlock Full Course — $@enrollment.Course.Price</a>
                         }
@@ -93,13 +96,13 @@ else
                         @{
                             var nextLessonId = nextLesson.TryGetValue(enrollment.CourseId, out var nl) ? nl : null;
                         }
-                        @if (nextLessonId.HasValue && (enrollment.Course.Price == 0 || enrollment.IsPaid))
+                        @if (nextLessonId.HasValue && (enrollment.Course.Price == 0 || isActive))
                         {
-                            <a asp-action="ViewLesson" asp-route-id="@nextLessonId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !enrollment.IsPaid ? "" : "mt-auto")">Continue Learning</a>
+                            <a asp-action="ViewLesson" asp-route-id="@nextLessonId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !isActive ? "" : "mt-auto")">Continue Learning</a>
                         }
                         else
                         {
-                            <a asp-action="Details" asp-route-id="@enrollment.CourseId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !enrollment.IsPaid ? "" : "mt-auto")">Continue Learning</a>
+                            <a asp-action="Details" asp-route-id="@enrollment.CourseId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !isActive ? "" : "mt-auto")">Continue Learning</a>
                         }
                     </div>
                 </div>

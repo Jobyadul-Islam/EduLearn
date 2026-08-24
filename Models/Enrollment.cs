@@ -1,8 +1,14 @@
-﻿using System;
+using System;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace EduLearn.Models
 {
+    public enum EnrollmentStatus
+    {
+        Pending,
+        Active
+    }
+
     public class Enrollment
     {
         public int Id { get; set; }
@@ -14,7 +20,7 @@ namespace EduLearn.Models
 
         public DateTime EnrollDate { get; set; }
 
-        public bool IsPaid { get; set; }
+        public EnrollmentStatus Status { get; set; }
         public DateTime? PaymentDate { get; set; }
     }
 }

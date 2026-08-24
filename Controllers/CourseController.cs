@@ -73,7 +73,7 @@ namespace EduLearn.Controllers
                 var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == id && e.StudentId == userId);
 
                 ViewBag.IsEnrolled = enrollment != null;
-                ViewBag.HasFullAccess = course.Price == 0 || (enrollment?.IsPaid ?? false);
+                ViewBag.HasFullAccess = course.Price == 0 || (enrollment?.Status == EnrollmentStatus.Active);
             }
             else
             {
@@ -117,7 +117,9 @@ namespace EduLearn.Controllers
                     CourseId = courseId,
                     StudentId = userId,
                     EnrollDate = DateTime.Now,
-                    IsPaid = false
+                    // Free courses need no payment step, so they start Active; paid courses
+                    // stay Pending until ConfirmPayment transitions them.
+                    Status = course.Price == 0 ? EnrollmentStatus.Active : EnrollmentStatus.Pending
                 };
                 _context.Enrollments.Add(enrollment);
                 _context.SaveChanges();
@@ -141,7 +143,7 @@ namespace EduLearn.Controllers
                 return RedirectToAction("Details", new { id = courseId });
             }
 
-            if (course.Price == 0 || enrollment.IsPaid)
+            if (course.Price == 0 || enrollment.Status == EnrollmentStatus.Active)
             {
                 return RedirectToAction("Details", new { id = courseId });
             }
@@ -181,7 +183,7 @@ namespace EduLearn.Controllers
                 return RedirectToAction("Checkout", new { courseId });
             }
 
-            enrollment.IsPaid = true;
+            enrollment.Status = EnrollmentStatus.Active;
             enrollment.PaymentDate = DateTime.Now;
             _context.SaveChanges();
 
@@ -275,7 +277,7 @@ namespace EduLearn.Controllers
                 return Forbid();
             }
 
-            bool hasFullAccess = lesson.Module.Course.Price == 0 || enrollment.IsPaid;
+            bool hasFullAccess = lesson.Module.Course.Price == 0 || enrollment.Status == EnrollmentStatus.Active;
             bool isFreePreview = GetFreePreviewLessonIds(courseId).Contains(id);
 
             if (!hasFullAccess && !isFreePreview)
