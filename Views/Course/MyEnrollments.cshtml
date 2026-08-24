@@ -10,6 +10,11 @@
     <p class="text-muted-2">Pick up where you left off.</p>
 </div>
 
+@if (TempData["CertificateError"] != null)
+{
+    <div class="alert alert-warning">@TempData["CertificateError"]</div>
+}
+
 @if (!Model.Any())
 {
     <div class="empty-state">
@@ -59,6 +64,10 @@ else
                         @if (enrollment.Course.Price > 0 && !enrollment.IsPaid)
                         {
                             <a asp-action="Checkout" asp-route-courseId="@enrollment.CourseId" class="btn btn-success mt-auto mb-2">Unlock Full Course — $@enrollment.Course.Price</a>
+                        }
+                        @if (pct == 100)
+                        {
+                            <a asp-action="Certificate" asp-route-courseId="@enrollment.CourseId" class="btn btn-outline-success mb-2">Download Certificate</a>
                         }
                         <a asp-action="Details" asp-route-id="@enrollment.CourseId" class="btn btn-outline-primary @(enrollment.Course.Price > 0 && !enrollment.IsPaid ? "" : "mt-auto")">Continue Learning</a>
                     </div>

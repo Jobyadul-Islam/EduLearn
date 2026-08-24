@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+﻿using System;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace EduLearn.Models
 {
@@ -12,5 +13,6 @@ namespace EduLearn.Models
         public Lesson Lesson { get; set; }
 
         public bool IsCompleted { get; set; }
+        public DateTime? CompletedAt { get; set; }
     }
 }

@@ -4,6 +4,8 @@ using EduLearn.Services;
 using Microsoft.AspNetCore.Identity;                // NEW
 using Microsoft.EntityFrameworkCore;
 
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Local-only overrides (e.g. real admin seed credentials) — gitignored, never committed

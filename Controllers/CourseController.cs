@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EduLearn.Data;
 using EduLearn.Models;
+using EduLearn.Services;
 
 namespace EduLearn.Controllers
 {
@@ -255,18 +256,54 @@ namespace EduLearn.Controllers
                 {
                     LessonId = lessonId,
                     StudentId = userId,
-                    IsCompleted = true
+                    IsCompleted = true,
+                    CompletedAt = DateTime.Now
                 };
                 _context.LessonProgresses.Add(progress);
             }
             else
             {
                 progress.IsCompleted = true;
+                progress.CompletedAt = DateTime.Now;
             }
 
             _context.SaveChanges();
 
             return RedirectToAction("ViewLesson", new { id = lessonId });
+        }
+
+        [Authorize]
+        public IActionResult Certificate(int courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var enrollment = _context.Enrollments
+                .Include(e => e.Course)
+                .FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+
+            if (enrollment == null) return NotFound();
+
+            var totalLessons = _context.Lessons.Count(l => l.Module.CourseId == courseId);
+            var completedProgress = _context.LessonProgresses
+                .Where(p => p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == courseId)
+                .ToList();
+
+            if (totalLessons == 0 || completedProgress.Count < totalLessons)
+            {
+                TempData["CertificateError"] = "Complete every lesson in this course to unlock your certificate.";
+                return RedirectToAction("MyEnrollments");
+            }
+
+            var completionDate = completedProgress
+                .Select(p => p.CompletedAt ?? DateTime.Now)
+                .Max();
+
+            var user = _context.Users.Find(userId);
+
+            var pdfBytes = CertificateService.Generate(user.FullName, enrollment.Course.Title, completionDate);
+
+            var fileName = $"Certificate-{enrollment.Course.CourseCode ?? enrollment.Course.Title}.pdf".Replace(" ", "-");
+            return File(pdfBytes, "application/pdf", fileName);
         }
 
         [Authorize]
