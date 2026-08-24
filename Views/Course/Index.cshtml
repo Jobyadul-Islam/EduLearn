@@ -7,6 +7,8 @@
     string sort = ViewBag.Sort;
     var categories = (List<EduLearn.Models.Category>)ViewBag.Categories;
     bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchTerm) || categoryId.HasValue;
+    int currentPage = ViewBag.CurrentPage;
+    int totalPages = ViewBag.TotalPages;
 }
 
 <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
@@ -98,4 +100,24 @@ else
             cardIndex++;
         }
     </div>
+
+    @if (totalPages > 1)
+    {
+        <nav class="d-flex justify-content-center gap-2 mt-3">
+            <a asp-action="Index"
+               asp-route-search="@searchTerm" asp-route-categoryId="@categoryId" asp-route-sort="@sort" asp-route-page="@(currentPage - 1)"
+               class="btn btn-sm btn-outline-primary @(currentPage <= 1 ? "disabled" : "")">Previous</a>
+
+            @for (var p = 1; p <= totalPages; p++)
+            {
+                <a asp-action="Index"
+                   asp-route-search="@searchTerm" asp-route-categoryId="@categoryId" asp-route-sort="@sort" asp-route-page="@p"
+                   class="btn btn-sm @(p == currentPage ? "btn-primary" : "btn-outline-primary")">@p</a>
+            }
+
+            <a asp-action="Index"
+               asp-route-search="@searchTerm" asp-route-categoryId="@categoryId" asp-route-sort="@sort" asp-route-page="@(currentPage + 1)"
+               class="btn btn-sm btn-outline-primary @(currentPage >= totalPages ? "disabled" : "")">Next</a>
+        </nav>
+    }
 }

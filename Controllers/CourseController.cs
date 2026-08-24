@@ -28,8 +28,10 @@ namespace EduLearn.Controllers
             _emailService = emailService;
         }
 
+        private const int CoursesPerPage = 4;
+
         // Public course listing — no login required
-        public IActionResult Index(string? search, int? categoryId, string? sort)
+        public IActionResult Index(string? search, int? categoryId, string? sort, int page = 1)
         {
             var query = _context.Courses
                 .Include(c => c.Category)
@@ -54,12 +56,23 @@ namespace EduLearn.Controllers
                 _ => query.OrderByDescending(c => c.Id)
             };
 
+            var totalCount = query.Count();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)CoursesPerPage));
+            page = Math.Clamp(page, 1, totalPages);
+
+            var pagedCourses = query
+                .Skip((page - 1) * CoursesPerPage)
+                .Take(CoursesPerPage)
+                .ToList();
+
             ViewBag.SearchTerm = search;
             ViewBag.CategoryId = categoryId;
             ViewBag.Sort = sort ?? "newest";
             ViewBag.Categories = _context.Categories.OrderBy(c => c.Name).ToList();
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
 
-            return View(query.ToList());
+            return View(pagedCourses);
         }
 
         // Public course details page
