@@ -1,0 +1,35 @@
+@page
+@model EduLearn.Areas.Identity.Pages.Account.VerifyOtpModel
+@{
+    ViewData["Title"] = "Verify Your Email";
+}
+
+<div class="auth-card">
+    <div class="text-center mb-4">
+        <svg class="icon" style="width:2.5rem;height:2.5rem;color:var(--color-primary);" viewBox="0 0 24 24"><path d="M22 6c0-1.1-.9-2-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6Z"/><path d="m22 6-10 7L2 6"/></svg>
+        <h2 class="section-title mt-2 mb-1">Verify your email</h2>
+        <p class="text-muted-2">We sent a 6-digit code to <strong>@Model.MaskedEmail</strong>.</p>
+    </div>
+
+    <div class="card form-card">
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        @if (ViewData["ResendMessage"] != null)
+        {
+            <div class="alert alert-info">@ViewData["ResendMessage"]</div>
+        }
+        <form method="post">
+            <div class="mb-4">
+                <label class="form-label">Verification Code</label>
+                <input asp-for="Input.Code" class="form-control" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Verify & Create Account</button>
+        </form>
+        <form method="post" asp-page-handler="Resend" class="mt-2">
+            <button type="submit" class="btn btn-link w-100">Resend code</button>
+        </form>
+    </div>
+
+    <p class="text-center text-muted-2 mt-3 mb-0">
+        Wrong email? <a asp-page="/Account/Register">Start over</a>
+    </p>
+</div>

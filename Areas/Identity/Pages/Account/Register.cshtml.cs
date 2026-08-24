@@ -1,20 +1,25 @@
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using EduLearn.Models;
+using EduLearn.Services;
 
 namespace EduLearn.Areas.Identity.Pages.Account
 {
     public class RegisterModel : PageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        public const string SessionKey = "PendingRegistration";
 
-        public RegisterModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
+
+        public RegisterModel(UserManager<ApplicationUser> userManager, IEmailService emailService)
         {
             _userManager = userManager;
-            _signInManager = signInManager;
+            _emailService = emailService;
         }
 
         [BindProperty]
@@ -35,6 +40,17 @@ namespace EduLearn.Areas.Identity.Pages.Account
             public string ConfirmPassword { get; set; }
         }
 
+        // Held in session (not the database) until the OTP is verified, so an
+        // unverified registration never leaves a half-created account behind.
+        public class PendingRegistration
+        {
+            public string FullName { get; set; }
+            public string Email { get; set; }
+            public string Password { get; set; }
+            public string Otp { get; set; }
+            public DateTime ExpiresAt { get; set; }
+        }
+
         public void OnGet() { }
 
         // Public self-registration only ever creates Student accounts.
@@ -43,27 +59,33 @@ namespace EduLearn.Areas.Identity.Pages.Account
         {
             if (!ModelState.IsValid) return Page();
 
-            var user = new ApplicationUser
+            if (await _userManager.FindByEmailAsync(Input.Email) != null)
             {
-                UserName = Input.Email,
-                Email = Input.Email,
-                FullName = Input.FullName,
-                IsApproved = true
-            };
-
-            var result = await _userManager.CreateAsync(user, Input.Password);
-
-            if (result.Succeeded)
-            {
-                await _userManager.AddToRoleAsync(user, "Student");
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToPage("/Index", new { area = "" });
+                ModelState.AddModelError("Input.Email", "An account with this email already exists.");
+                return Page();
             }
 
-            foreach (var error in result.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
+            var otp = new Random().Next(0, 1000000).ToString("D6");
 
-            return Page();
+            var pending = new PendingRegistration
+            {
+                FullName = Input.FullName,
+                Email = Input.Email,
+                Password = Input.Password,
+                Otp = otp,
+                ExpiresAt = DateTime.Now.AddMinutes(10)
+            };
+            HttpContext.Session.SetString(SessionKey, JsonSerializer.Serialize(pending));
+
+            var body = $@"
+                <p>Hi {System.Net.WebUtility.HtmlEncode(Input.FullName)},</p>
+                <p>Your EduLearn verification code is:</p>
+                <p style=""font-size:28px; font-weight:bold; letter-spacing:4px;"">{otp}</p>
+                <p>This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
+                <p>— EduLearn</p>";
+            await _emailService.SendEmailAsync(Input.Email, "Your EduLearn verification code", body);
+
+            return RedirectToPage("./VerifyOtp");
         }
     }
 }
