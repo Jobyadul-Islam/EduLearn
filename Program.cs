@@ -30,6 +30,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IChatService, GeminiChatService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<IDeadlineReminderService, DeadlineReminderService>();
+builder.Services.AddHostedService<DeadlineReminderBackgroundService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

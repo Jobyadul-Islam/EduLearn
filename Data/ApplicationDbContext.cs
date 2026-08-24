@@ -24,6 +24,7 @@ namespace EduLearn.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<InstructorApplicationPin> InstructorApplicationPins { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<AssignmentReminder> AssignmentReminders { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -152,6 +153,18 @@ namespace EduLearn.Data
                 .HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(p => p.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<AssignmentReminder>()
+                .HasOne<Assignment>()
+                .WithMany()
+                .HasForeignKey(r => r.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AssignmentReminder>()
+                .HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(r => r.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
