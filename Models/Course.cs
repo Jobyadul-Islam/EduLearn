@@ -38,5 +38,8 @@ namespace EduLearn.Models
 
         [ValidateNever]
         public ICollection<Enrollment> Enrollments { get; set; }
+
+        [ValidateNever]
+        public ICollection<Review> Reviews { get; set; }
     }
 }

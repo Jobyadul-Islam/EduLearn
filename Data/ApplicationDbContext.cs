@@ -25,6 +25,7 @@ namespace EduLearn.Data
         public DbSet<InstructorApplicationPin> InstructorApplicationPins { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<AssignmentReminder> AssignmentReminders { get; set; }
+        public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -162,6 +163,18 @@ namespace EduLearn.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<AssignmentReminder>()
+                .HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(r => r.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Review>()
+                .HasOne(r => r.Course)
+                .WithMany(c => c.Reviews)
+                .HasForeignKey(r => r.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Review>()
                 .HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(r => r.StudentId)
