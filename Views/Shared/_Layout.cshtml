@@ -125,7 +125,7 @@
                             <li class="nav-item d-flex align-items-center">
                                 <span class="user-chip">
                                     <span class="user-avatar">@(User.Identity!.Name?.Substring(0, 1).ToUpper())</span>
-                                    @User.Identity!.Name
+                                    <span class="user-email">@User.Identity!.Name</span>
                                 </span>
                             </li>
                             <li class="nav-item">
