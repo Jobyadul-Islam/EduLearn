@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "Revenue Report";
+    var monthly = (List<(DateTime Month, decimal Revenue)>)ViewBag.MonthlyRevenue;
+    decimal totalRevenue = (decimal)ViewBag.TotalRevenue;
+    var labels = monthly.Select(m => m.Month.ToString("MMM yyyy"));
+    var values = monthly.Select(m => m.Revenue);
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">Revenue Report</h2>
+    <p class="text-muted-2">Total and monthly revenue from paid course transactions.</p>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card stat-success">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value">TK @totalRevenue.ToString("N2")</div>
+        </div>
+    </div>
+</div>
+
+<div class="card form-card">
+    <h5 class="mb-3">Monthly Revenue — Last 6 Months</h5>
+    <canvas id="revenueChart" height="90"></canvas>
+</div>
+
+<script src="~/lib/chartjs/chart.umd.min.js"></script>
+<script>
+    const ctx = document.getElementById('revenueChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(labels)),
+            datasets: [{
+                label: 'Revenue (TK)',
+                data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(values)),
+                backgroundColor: '#1D4ED8'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>

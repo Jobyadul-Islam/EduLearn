@@ -97,6 +97,28 @@ namespace EduLearn.Areas.Admin.Controllers
             return View(enrollments);
         }
 
+        public IActionResult Revenue()
+        {
+            var successfulPayments = _context.Payments.Where(p => p.Status == PaymentStatus.Success);
+
+            ViewBag.TotalRevenue = successfulPayments.Sum(p => (decimal?)p.Amount) ?? 0;
+
+            var sixMonthsAgo = new System.DateTime(System.DateTime.Now.Year, System.DateTime.Now.Month, 1).AddMonths(-5);
+            var revenueByMonth = successfulPayments
+                .Where(p => p.CreatedAt >= sixMonthsAgo)
+                .AsEnumerable()
+                .GroupBy(p => new System.DateTime(p.CreatedAt.Year, p.CreatedAt.Month, 1))
+                .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+
+            // Always show all 6 months, even ones with zero revenue, so the chart has no gaps
+            ViewBag.MonthlyRevenue = Enumerable.Range(0, 6)
+                .Select(i => sixMonthsAgo.AddMonths(i))
+                .Select(month => (Month: month, Revenue: revenueByMonth.GetValueOrDefault(month, 0)))
+                .ToList();
+
+            return View();
+        }
+
         [HttpPost]
         public IActionResult ApproveCourse(int id)
         {
