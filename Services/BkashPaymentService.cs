@@ -71,15 +71,16 @@ namespace EduLearn.Services
             return await CreateAsync(idToken, body);
         }
 
-        public async Task<BkashCreateResult> CreatePaymentAsync(string idToken, string agreementId, decimal amount, string invoiceNumber, string callbackUrl)
+        public async Task<BkashCreateResult> CreatePaymentAsync(string idToken, string payerReference, string agreementId, decimal amount, string invoiceNumber, string callbackUrl)
         {
             var body = new CreatePaymentRequest
             {
                 Mode = "0011",
+                PayerReference = payerReference,
                 AgreementID = agreementId,
                 Amount = amount.ToString("0.00"),
                 Currency = "BDT",
-                Intent = "Sale",
+                Intent = "sale",
                 MerchantInvoiceNumber = invoiceNumber,
                 CallbackURL = callbackUrl
             };

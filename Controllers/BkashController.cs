@@ -96,7 +96,8 @@ namespace EduLearn.Controllers
 
             var callbackUrl = Url.Action("PaymentCallback", "Bkash", null, Request.Scheme);
             var invoiceNumber = $"ENR-{courseId.Value}-{DateTime.Now:yyyyMMddHHmmssfff}";
-            var payment = await _bkash.CreatePaymentAsync(idToken, executed.AgreementId!, course.Price, invoiceNumber, callbackUrl!);
+            var userId = _userManager.GetUserId(User);
+            var payment = await _bkash.CreatePaymentAsync(idToken, userId!, executed.AgreementId!, course.Price, invoiceNumber, callbackUrl!);
 
             if (!payment.Success)
             {

@@ -36,7 +36,7 @@ namespace EduLearn.Services
         Task<BkashAgreementExecuteResult> ExecuteAgreementAsync(string idToken, string paymentId);
 
         // mode "0011" — the actual charge, made against an already-executed agreement
-        Task<BkashCreateResult> CreatePaymentAsync(string idToken, string agreementId, decimal amount, string invoiceNumber, string callbackUrl);
+        Task<BkashCreateResult> CreatePaymentAsync(string idToken, string payerReference, string agreementId, decimal amount, string invoiceNumber, string callbackUrl);
 
         Task<BkashPaymentExecuteResult> ExecutePaymentAsync(string idToken, string paymentId);
     }
