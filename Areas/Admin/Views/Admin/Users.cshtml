@@ -115,14 +115,12 @@
                             @if (user.Role == "Instructor" && !user.IsApproved)
                             {
                                 <a asp-action="ViewApplication" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">View Application</a>
-                                <form asp-action="Approve" asp-route-id="@user.Id" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                <form asp-action="Approve" asp-route-id="@user.Id" method="post" class="d-inline d-flex gap-1">
+                                    <input type="password" name="password" class="form-control form-control-sm" placeholder="Set login password" required minlength="6" style="max-width:160px;" />
+                                    <button type="submit" class="btn btn-sm btn-success text-nowrap">Approve & Email</button>
                                 </form>
                                 <form asp-action="Reject" asp-route-id="@user.Id" method="post" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
-                                </form>
-                                <form asp-action="SendLoginEmail" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('This will reset their password and email new login details to ' + '@user.Email' + '. Continue?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">Send Login Email</button>
                                 </form>
                             }
                             @if (user.Id == currentUserId)

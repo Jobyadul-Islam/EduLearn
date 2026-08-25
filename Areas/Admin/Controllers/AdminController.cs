@@ -153,14 +153,48 @@ namespace EduLearn.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Approve(string id)
+        public async Task<IActionResult> Approve(string id, string password)
         {
             var user = await _userManager.FindByIdAsync(id);
-            if (user != null)
+            if (user == null)
             {
-                user.IsApproved = true;
-                await _userManager.UpdateAsync(user);
+                TempData["EmailResult"] = "User not found.";
+                return RedirectToAction("Users");
             }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                TempData["EmailResult"] = "Enter a login password to approve this instructor.";
+                return RedirectToAction("Users");
+            }
+
+            // The admin's chosen password becomes the instructor's real first-time login,
+            // replacing whatever they set on the application form.
+            await _userManager.RemovePasswordAsync(user);
+            var addResult = await _userManager.AddPasswordAsync(user, password);
+            if (!addResult.Succeeded)
+            {
+                TempData["EmailResult"] = string.Join(" ", addResult.Errors.Select(e => e.Description));
+                return RedirectToAction("Users");
+            }
+
+            user.IsApproved = true;
+            await _userManager.UpdateAsync(user);
+
+            var body = $@"
+                <p>Hi {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
+                <p>Your EduLearn instructor application has been approved! Use the credentials below to log in:</p>
+                <p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(user.Email)}<br/>
+                <strong>Password:</strong> {System.Net.WebUtility.HtmlEncode(password)}</p>
+                <p>You can change your password any time using ""Forgot your password?"" on the login page.</p>
+                <p>— EduLearn</p>";
+
+            var sent = await _emailService.SendEmailAsync(user.Email, "Your EduLearn Instructor Account is Approved", body);
+
+            TempData["EmailResult"] = sent
+                ? $"Instructor approved and login email sent to {user.Email}."
+                : "Instructor approved, but the login email failed to send. Check the email configuration.";
+
             return RedirectToAction("Users");
         }
 
@@ -193,73 +227,6 @@ namespace EduLearn.Areas.Admin.Controllers
                 await _userManager.UpdateAsync(user);
             }
             return RedirectToAction("Users");
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> SendLoginEmail(string id)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null)
-            {
-                TempData["EmailResult"] = "User not found.";
-                return RedirectToAction("Users");
-            }
-
-            if (user.IsApproved || !await _userManager.IsInRoleAsync(user, "Instructor"))
-            {
-                TempData["EmailResult"] = "Login emails can only be sent to pending instructor applicants.";
-                return RedirectToAction("Users");
-            }
-
-            var tempPassword = GenerateTempPassword();
-
-            await _userManager.RemovePasswordAsync(user);
-            var addResult = await _userManager.AddPasswordAsync(user, tempPassword);
-
-            if (!addResult.Succeeded)
-            {
-                TempData["EmailResult"] = "Could not reset the password — try again.";
-                return RedirectToAction("Users");
-            }
-
-            var body = $@"
-                <p>Hi {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
-                <p>Your EduLearn instructor account is ready. Use the credentials below to log in:</p>
-                <p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(user.Email)}<br/>
-                <strong>Password:</strong> {System.Net.WebUtility.HtmlEncode(tempPassword)}</p>
-                <p>We recommend changing your password after logging in.</p>
-                <p>— EduLearn</p>";
-
-            var sent = await _emailService.SendEmailAsync(user.Email, "Your EduLearn Instructor Login", body);
-
-            TempData["EmailResult"] = sent
-                ? $"Login email sent to {user.Email}."
-                : "Password was reset, but the email failed to send. Check the email configuration.";
-
-            return RedirectToAction("Users");
-        }
-
-        private static string GenerateTempPassword()
-        {
-            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-            const string lower = "abcdefghijkmnpqrstuvwxyz";
-            const string digits = "23456789";
-            const string special = "!@#$%";
-            var random = new System.Random();
-
-            var chars = new List<char>
-            {
-                upper[random.Next(upper.Length)],
-                lower[random.Next(lower.Length)],
-                digits[random.Next(digits.Length)],
-                special[random.Next(special.Length)]
-            };
-
-            const string all = upper + lower + digits + special;
-            for (int i = 0; i < 6; i++)
-                chars.Add(all[random.Next(all.Length)]);
-
-            return new string(chars.OrderBy(_ => random.Next()).ToArray());
         }
 
         public IActionResult ViewApplication(string id)
