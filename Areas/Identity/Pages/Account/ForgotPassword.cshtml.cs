@@ -39,11 +39,12 @@ namespace EduLearn.Areas.Identity.Pages.Account
             if (user != null && user.IsActive)
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var encodedToken = WebUtility.UrlEncode(token);
+                // Url.Page already URL-encodes every route value it's given, so encoding the
+                // token here too would double-encode it and break validation on the other end.
                 var resetLink = Url.Page(
                     "/Account/ResetPassword",
                     pageHandler: null,
-                    values: new { area = "Identity", email = user.Email, code = encodedToken },
+                    values: new { area = "Identity", email = user.Email, code = token },
                     protocol: Request.Scheme);
 
                 var body = $@"
