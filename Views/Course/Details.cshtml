@@ -11,6 +11,11 @@
     <div class="alert alert-success">@TempData["PaymentSuccess"]</div>
 }
 
+@if (TempData["ReviewSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["ReviewSuccess"]</div>
+}
+
 @if (Model.Status != EduLearn.Models.CourseStatus.Approved)
 {
     <div class="alert alert-warning d-flex align-items-center gap-2">

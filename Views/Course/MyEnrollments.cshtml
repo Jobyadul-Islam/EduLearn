@@ -5,6 +5,7 @@
     var progress = (Dictionary<int, int>)ViewBag.ProgressByCourseId;
     var nextLesson = (Dictionary<int, int?>)ViewBag.NextLessonByCourseId;
     var deadlines = (List<EduLearn.Models.Assignment>)ViewBag.UpcomingDeadlines;
+    var reviewedCourseIds = (List<int>)ViewBag.ReviewedCourseIds;
 }
 
 <div class="mb-4">
@@ -15,6 +16,11 @@
 @if (TempData["CertificateError"] != null)
 {
     <div class="alert alert-warning">@TempData["CertificateError"]</div>
+}
+
+@if (TempData["ReviewError"] != null)
+{
+    <div class="alert alert-warning">@TempData["ReviewError"]</div>
 }
 
 @if (deadlines != null && deadlines.Any())
@@ -92,6 +98,14 @@ else
                         @if (pct == 100)
                         {
                             <a asp-action="Certificate" asp-route-courseId="@enrollment.CourseId" class="btn btn-outline-success mb-2">Download Certificate</a>
+                            @if (reviewedCourseIds.Contains(enrollment.CourseId))
+                            {
+                                <span class="text-muted-2 small mb-2">You've reviewed this course</span>
+                            }
+                            else
+                            {
+                                <a asp-action="WriteReview" asp-route-courseId="@enrollment.CourseId" class="btn btn-outline-primary mb-2">Write a Review</a>
+                            }
                         }
                         @{
                             var nextLessonId = nextLesson.TryGetValue(enrollment.CourseId, out var nl) ? nl : null;

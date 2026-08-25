@@ -255,6 +255,11 @@ namespace EduLearn.Controllers
                 .Take(5)
                 .ToList();
 
+            ViewBag.ReviewedCourseIds = _context.Reviews
+                .Where(r => r.StudentId == userId)
+                .Select(r => r.CourseId)
+                .ToList();
+
             return View(enrollments);
         }
 
@@ -396,6 +401,81 @@ namespace EduLearn.Controllers
 
             var fileName = $"Certificate-{enrollment.Course.CourseCode ?? enrollment.Course.Title}.pdf".Replace(" ", "-");
             return File(pdfBytes, "application/pdf", fileName);
+        }
+
+        [Authorize(Roles = "Student")]
+        public IActionResult WriteReview(int courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var enrollment = _context.Enrollments.Include(e => e.Course).FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            if (enrollment == null) return NotFound();
+
+            if (!HasCompletedCourse(userId, courseId))
+            {
+                TempData["ReviewError"] = "Complete every lesson in this course to leave a review.";
+                return RedirectToAction("MyEnrollments");
+            }
+
+            if (_context.Reviews.Any(r => r.CourseId == courseId && r.StudentId == userId))
+            {
+                TempData["ReviewError"] = "You've already reviewed this course.";
+                return RedirectToAction("MyEnrollments");
+            }
+
+            return View(enrollment.Course);
+        }
+
+        [Authorize(Roles = "Student")]
+        [HttpPost]
+        public IActionResult WriteReview(int courseId, int rating, string? comment)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            if (enrollment == null) return NotFound();
+
+            if (!HasCompletedCourse(userId, courseId))
+            {
+                TempData["ReviewError"] = "Complete every lesson in this course to leave a review.";
+                return RedirectToAction("MyEnrollments");
+            }
+
+            if (_context.Reviews.Any(r => r.CourseId == courseId && r.StudentId == userId))
+            {
+                TempData["ReviewError"] = "You've already reviewed this course.";
+                return RedirectToAction("MyEnrollments");
+            }
+
+            if (rating < 1 || rating > 5)
+            {
+                TempData["ReviewError"] = "Choose a rating between 1 and 5 stars.";
+                return RedirectToAction("WriteReview", new { courseId });
+            }
+
+            _context.Reviews.Add(new Review
+            {
+                StudentId = userId,
+                CourseId = courseId,
+                Rating = rating,
+                Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
+                CreatedAt = DateTime.Now
+            });
+            _context.SaveChanges();
+
+            TempData["ReviewSuccess"] = "Thanks for your review!";
+            return RedirectToAction("Details", new { id = courseId });
+        }
+
+        private bool HasCompletedCourse(string userId, int courseId)
+        {
+            var totalLessons = _context.Lessons.Count(l => l.Module.CourseId == courseId);
+            if (totalLessons == 0) return false;
+
+            var completedLessons = _context.LessonProgresses.Count(p =>
+                p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == courseId);
+
+            return completedLessons == totalLessons;
         }
 
         [Authorize]
