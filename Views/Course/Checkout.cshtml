@@ -21,7 +21,7 @@
         </div>
 
         <div class="alert alert-secondary small">
-            This is a simulated checkout for demo purposes — no real payment is processed. Any card number works; a number ending in <code>0000</code> simulates a declined payment.
+            Payment is processed through bKash's sandbox — no real money moves. You'll be redirected to bKash's own test page to authorize with a sandbox wallet.
         </div>
 
         @if (TempData["PaymentError"] != null)
@@ -29,13 +29,11 @@
             <div class="alert alert-danger">@TempData["PaymentError"]</div>
         }
 
-        <form asp-action="ConfirmPayment" method="post">
+        <form asp-controller="Bkash" asp-action="Pay" method="post">
             <input type="hidden" name="courseId" value="@Model.Id" />
-            <div class="mb-3">
-                <label class="form-label">Card Number</label>
-                <input type="text" name="cardNumber" class="form-control" placeholder="4242 4242 4242 4242" maxlength="19" required />
-            </div>
-            <button type="submit" class="btn btn-success w-100">Confirm Payment — $@Model.Price</button>
+            <button type="submit" class="btn btn-success w-100">
+                Pay with bKash — $@Model.Price
+            </button>
         </form>
         <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link w-100 mt-2">Cancel</a>
     </div>

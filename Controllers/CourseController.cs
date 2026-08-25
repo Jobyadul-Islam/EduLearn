@@ -193,46 +193,6 @@ namespace EduLearn.Controllers
             return View(course);
         }
 
-        [Authorize(Roles = "Student")]
-        [HttpPost]
-        public IActionResult ConfirmPayment(int courseId, string? cardNumber)
-        {
-            var userId = _userManager.GetUserId(User);
-
-            var enrollment = _context.Enrollments.Include(e => e.Course).FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
-            if (enrollment == null) return NotFound();
-
-            // Simulated gateway: a card number ending in 0000 deliberately fails, so the
-            // failure path (declined payment, no access granted) is exercisable in the demo.
-            var digitsOnly = (cardNumber ?? string.Empty).Replace(" ", "");
-            var simulatedFailure = digitsOnly.EndsWith("0000");
-
-            var payment = new Payment
-            {
-                StudentId = userId,
-                CourseId = courseId,
-                Amount = enrollment.Course.Price,
-                TransactionId = "TXN-" + Guid.NewGuid().ToString("N")[..10].ToUpper(),
-                Status = simulatedFailure ? PaymentStatus.Failed : PaymentStatus.Success,
-                CreatedAt = DateTime.Now
-            };
-            _context.Payments.Add(payment);
-
-            if (simulatedFailure)
-            {
-                _context.SaveChanges();
-                TempData["PaymentError"] = "Your payment was declined. Please try again with a different card.";
-                return RedirectToAction("Checkout", new { courseId });
-            }
-
-            enrollment.Status = EnrollmentStatus.Active;
-            enrollment.PaymentDate = DateTime.Now;
-            _context.SaveChanges();
-
-            TempData["PaymentSuccess"] = $"Payment successful — transaction {payment.TransactionId}.";
-            return RedirectToAction("Details", new { id = courseId });
-        }
-
         [Authorize]
         public IActionResult MyEnrollments()
         {
