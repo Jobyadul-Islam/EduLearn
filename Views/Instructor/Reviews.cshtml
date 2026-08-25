@@ -1,0 +1,107 @@
+@model IEnumerable<dynamic>
+
+@{
+    ViewData["Title"] = "My Reviews";
+    var myCourses = (List<EduLearn.Models.Course>)ViewBag.MyCourses;
+    var courseStats = (IEnumerable<dynamic>)ViewBag.CourseStats;
+    int? selectedCourseId = ViewBag.SelectedCourseId;
+}
+
+<div class="mb-4">
+    <h2 class="section-title">My Reviews</h2>
+    <p class="text-muted-2">Feedback students left across all your courses.</p>
+</div>
+
+<div class="card form-card mb-4">
+    <h5 class="mb-3">Course Ratings</h5>
+    @if (!courseStats.Any())
+    {
+        <p class="text-muted-2 mb-0">You don't have any courses yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Average Rating</th>
+                        <th>Reviews</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var stat in courseStats)
+                    {
+                        bool needsImprovement = stat.Average != null && stat.Average < 3.5;
+                        <tr class="@(needsImprovement ? "table-danger" : "")">
+                            <td>@stat.CourseTitle</td>
+                            <td>
+                                @if (stat.Average != null)
+                                {
+                                    <text>@(((double)stat.Average).ToString("0.0")) / 5</text>
+                                }
+                                else
+                                {
+                                    <span class="text-muted-2">No reviews yet</span>
+                                }
+                            </td>
+                            <td>@stat.Count</td>
+                            <td>
+                                @if (needsImprovement)
+                                {
+                                    <span class="status-pill rejected">Needs Improvement</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<form asp-action="Reviews" method="get" class="mb-3" style="max-width:300px;">
+    <select name="courseId" class="form-select" onchange="this.form.submit()">
+        <option value="">All Courses</option>
+        @foreach (var course in myCourses)
+        {
+            <option value="@course.Id" selected="@(selectedCourseId == course.Id ? "selected" : null)">@course.Title</option>
+        }
+    </select>
+</form>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No reviews yet@(selectedCourseId.HasValue ? " for this course" : "").</p>
+    </div>
+}
+else
+{
+    @foreach (var review in Model)
+    {
+        <div class="card mb-2">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                        <strong>@review.StudentName</strong>
+                        <span class="text-muted-2 small"> — @review.CourseTitle</span>
+                    </div>
+                    <span class="text-muted-2 small">@review.CreatedAt.ToString("MMM d, yyyy")</span>
+                </div>
+                <div class="mb-1">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <span style="color:@(i <= review.Rating ? "#FFC93C" : "#d8d8d8");">★</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace((string)review.Comment))
+                {
+                    <p class="mb-0 small">@review.Comment</p>
+                }
+            </div>
+        </div>
+    }
+}

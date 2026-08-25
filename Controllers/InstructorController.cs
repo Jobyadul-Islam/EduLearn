@@ -178,6 +178,68 @@ namespace EduLearn.Controllers
             return RedirectToAction("Index");
         }
 
+        // ---------------- Reviews ----------------
+
+        public IActionResult Reviews(int? courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+            var myCourses = _context.Courses.Where(c => c.InstructorId == userId).ToList();
+            var myCourseIds = myCourses.Select(c => c.Id).ToList();
+
+            var reviewsQuery = from r in _context.Reviews
+                                join u in _context.Users on r.StudentId equals u.Id
+                                where myCourseIds.Contains(r.CourseId)
+                                select new
+                                {
+                                    r.Rating,
+                                    r.Comment,
+                                    r.CreatedAt,
+                                    StudentName = u.FullName,
+                                    r.CourseId
+                                };
+
+            if (courseId.HasValue)
+            {
+                reviewsQuery = reviewsQuery.Where(r => r.CourseId == courseId.Value);
+            }
+
+            var reviews = reviewsQuery
+                .OrderByDescending(r => r.CreatedAt)
+                .ToList()
+                .Select(r => new
+                {
+                    r.Rating,
+                    r.Comment,
+                    r.CreatedAt,
+                    r.StudentName,
+                    CourseTitle = myCourses.First(c => c.Id == r.CourseId).Title
+                })
+                .ToList();
+
+            // Sorted lowest-rated first so underperforming courses surface immediately;
+            // courses with no reviews yet sink to the bottom rather than being flagged as "worst".
+            var courseStats = myCourses
+                .Select(c =>
+                {
+                    var ratings = _context.Reviews.Where(r => r.CourseId == c.Id).Select(r => r.Rating).ToList();
+                    return new
+                    {
+                        CourseId = c.Id,
+                        CourseTitle = c.Title,
+                        Average = ratings.Count > 0 ? ratings.Average() : (double?)null,
+                        Count = ratings.Count
+                    };
+                })
+                .OrderBy(x => x.Average ?? double.MaxValue)
+                .ToList();
+
+            ViewBag.MyCourses = myCourses;
+            ViewBag.CourseStats = courseStats;
+            ViewBag.SelectedCourseId = courseId;
+
+            return View(reviews);
+        }
+
         private async Task<bool> IsCurrentInstructorApproved()
         {
             var userId = _userManager.GetUserId(User);
