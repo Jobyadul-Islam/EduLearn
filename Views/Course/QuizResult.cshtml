@@ -3,7 +3,6 @@
 @{
     ViewData["Title"] = "Quiz Result";
     int percentage = Model.TotalQuestions > 0 ? (int)Math.Round(100.0 * Model.Score / Model.TotalQuestions) : 0;
-    bool passed = percentage >= 60;
 }
 
 <div class="mx-auto mt-2 text-center" style="max-width:520px;">
@@ -12,19 +11,20 @@
         <p class="text-muted-2 mb-4">Attempted @Model.AttemptDate.ToString("MMM d, yyyy 'at' h:mm tt")</p>
 
         <div class="mb-3">
-            <span class="@(passed ? "status-pill approved" : "status-pill pending")" style="font-size:1.1rem; padding:.5rem 1rem;">
-                @Model.Score / @Model.TotalQuestions correct (@percentage%)
+            <span class="@(Model.Passed ? "status-pill approved" : "status-pill rejected")" style="font-size:1.1rem; padding:.5rem 1rem;">
+                @(Model.Passed ? "Passed" : "Failed") — @Model.Score / @Model.TotalQuestions correct (@percentage%)
             </span>
         </div>
 
-        @if (passed)
+        @if (Model.Passed)
         {
-            <p class="text-success mb-4">Nice work — you passed this quiz.</p>
+            <p class="text-success mb-2">Nice work — you passed this quiz (pass mark: @Model.Quiz.PassMarkPercentage%).</p>
         }
         else
         {
-            <p class="text-muted-2 mb-4">You can retake the quiz any time to improve your score.</p>
+            <p class="text-muted-2 mb-2">You didn't reach the pass mark of @Model.Quiz.PassMarkPercentage% this time. You can retake the quiz any time.</p>
         }
+        <p class="text-muted-2 small mb-4">This result doesn't affect your course progress — you'll still complete the course and earn your certificate as long as you finish every lesson.</p>
 
         <div class="d-flex gap-2 justify-content-center">
             <a asp-action="ViewLesson" asp-route-id="@Model.Quiz.LessonId" class="btn btn-outline-primary">Back to Lesson</a>

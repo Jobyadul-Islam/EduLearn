@@ -6,6 +6,8 @@ namespace EduLearn.Models.ViewModels
     {
         public int LessonId { get; set; }
         public string Title { get; set; }
+        public int PassMarkPercentage { get; set; } = 60;
+        public int TimeLimitMinutes { get; set; } = 10;
         public List<QuestionViewModel> Questions { get; set; } = new List<QuestionViewModel>();
     }
 

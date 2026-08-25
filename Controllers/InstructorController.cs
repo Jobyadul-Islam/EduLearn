@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using EduLearn.Data;
 using EduLearn.Models;
 using EduLearn.Models.ViewModels;
+using System;
 using System.Linq;
 
 namespace EduLearn.Controllers
@@ -262,6 +263,7 @@ namespace EduLearn.Controllers
                                 {
                                     r.Score,
                                     r.TotalQuestions,
+                                    r.Passed,
                                     r.AttemptDate,
                                     QuizTitle = q.Title,
                                     StudentName = u.FullName,
@@ -280,6 +282,7 @@ namespace EduLearn.Controllers
                 {
                     r.Score,
                     r.TotalQuestions,
+                    r.Passed,
                     r.AttemptDate,
                     r.QuizTitle,
                     r.StudentName,
@@ -431,6 +434,8 @@ namespace EduLearn.Controllers
             {
                 Title = model.Title,
                 LessonId = model.LessonId,
+                PassMarkPercentage = Math.Clamp(model.PassMarkPercentage, 0, 100),
+                TimeLimitMinutes = Math.Max(model.TimeLimitMinutes, 1),
                 Questions = new List<QuizQuestion>()
             };
 

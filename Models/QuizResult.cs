@@ -20,6 +20,7 @@ namespace EduLearn.Models
 
         public int Score { get; set; }
         public int TotalQuestions { get; set; }
+        public bool Passed { get; set; }
         public DateTime AttemptDate { get; set; }
     }
 }

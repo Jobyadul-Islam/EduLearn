@@ -13,6 +13,18 @@
         <div class="card form-card mb-3">
             <label for="quizTitleInput" class="form-label">Quiz Title</label>
             <input id="quizTitleInput" name="Title" class="form-control" />
+
+            <div class="row mt-3">
+                <div class="col-sm-6">
+                    <label for="passMarkInput" class="form-label">Pass Mark (%)</label>
+                    <input type="number" id="passMarkInput" name="PassMarkPercentage" class="form-control" min="0" max="100" value="@Model.PassMarkPercentage" />
+                </div>
+                <div class="col-sm-6">
+                    <label for="timeLimitInput" class="form-label">Time Limit (minutes)</label>
+                    <input type="number" id="timeLimitInput" name="TimeLimitMinutes" class="form-control" min="1" value="@Model.TimeLimitMinutes" />
+                </div>
+            </div>
+            <p class="small text-muted-2 mt-2 mb-0">A student's pass/fail result on this quiz doesn't affect their course progress — they can still complete the course and earn their certificate regardless.</p>
         </div>
 
         <div id="questionsContainer">

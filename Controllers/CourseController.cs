@@ -438,6 +438,9 @@ namespace EduLearn.Controllers
                 }
             }
 
+            int totalQuestions = quiz.Questions.Count;
+            bool passed = totalQuestions > 0 && (100.0 * score / totalQuestions) >= quiz.PassMarkPercentage;
+
             var userId = _userManager.GetUserId(User);
             var existingResult = _context.QuizResults
                 .FirstOrDefault(r => r.QuizId == quizId && r.StudentId == userId);
@@ -445,7 +448,8 @@ namespace EduLearn.Controllers
             if (existingResult != null)
             {
                 existingResult.Score = score;
-                existingResult.TotalQuestions = quiz.Questions.Count;
+                existingResult.TotalQuestions = totalQuestions;
+                existingResult.Passed = passed;
                 existingResult.AttemptDate = DateTime.Now;
             }
             else
@@ -455,7 +459,8 @@ namespace EduLearn.Controllers
                     QuizId = quizId,
                     StudentId = userId,
                     Score = score,
-                    TotalQuestions = quiz.Questions.Count,
+                    TotalQuestions = totalQuestions,
+                    Passed = passed,
                     AttemptDate = DateTime.Now
                 });
             }

@@ -7,10 +7,18 @@
 <a asp-action="ViewLesson" asp-route-id="@Model.LessonId" class="text-decoration-none small text-muted-2">← Back to Lesson</a>
 
 <div class="mx-auto mt-2" style="max-width:680px;">
-    <h2 class="section-title mb-1">@Model.Title</h2>
-    <p class="text-muted-2 mb-4">Select an answer for each question, then submit.</p>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+        <h2 class="section-title mb-0">@Model.Title</h2>
+        <div id="quizTimer" class="status-pill pending" role="timer" aria-live="off" style="font-size:1.1rem; padding:.4rem .9rem;">
+            <span id="quizTimerText">@Model.TimeLimitMinutes:00</span>
+        </div>
+    </div>
+    <p class="text-muted-2 mb-4">
+        Select an answer for each question, then submit. Pass mark: <strong>@Model.PassMarkPercentage%</strong>.
+        The quiz submits automatically when time runs out.
+    </p>
 
-    <form asp-action="SubmitQuiz" method="post">
+    <form asp-action="SubmitQuiz" method="post" id="quizTakeForm">
         <input type="hidden" name="quizId" value="@Model.Id" />
 
         @{ int qNum = 0; }
@@ -32,3 +40,45 @@
         <button type="submit" class="btn btn-primary w-100">Submit Quiz</button>
     </form>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var totalSeconds = @Model.TimeLimitMinutes * 60;
+            var timerText = document.getElementById('quizTimerText');
+            var timerBadge = document.getElementById('quizTimer');
+            var form = document.getElementById('quizTakeForm');
+            var submitted = false;
+
+            function render() {
+                var m = Math.floor(totalSeconds / 60);
+                var s = totalSeconds % 60;
+                timerText.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+                if (totalSeconds <= 60) {
+                    timerBadge.classList.remove('pending');
+                    timerBadge.classList.add('rejected');
+                }
+            }
+
+            render();
+
+            var interval = setInterval(function () {
+                totalSeconds--;
+                render();
+
+                if (totalSeconds <= 0) {
+                    clearInterval(interval);
+                    if (!submitted) {
+                        submitted = true;
+                        form.submit();
+                    }
+                }
+            }, 1000);
+
+            form.addEventListener('submit', function () {
+                submitted = true;
+                clearInterval(interval);
+            });
+        })();
+    </script>
+}

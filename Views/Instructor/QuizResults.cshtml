@@ -40,6 +40,7 @@ else
                         <th>Course</th>
                         <th>Quiz</th>
                         <th>Score</th>
+                        <th>Result</th>
                         <th>Attempted</th>
                     </tr>
                 </thead>
@@ -51,9 +52,10 @@ else
                             <td>@r.StudentName</td>
                             <td>@r.CourseTitle</td>
                             <td>@r.QuizTitle</td>
+                            <td>@r.Score/@r.TotalQuestions (@percentage%)</td>
                             <td>
-                                <span class="@(percentage >= 60 ? "status-pill approved" : "status-pill pending")">
-                                    @r.Score/@r.TotalQuestions (@percentage%)
+                                <span class="@(r.Passed ? "status-pill approved" : "status-pill rejected")">
+                                    @(r.Passed ? "Passed" : "Failed")
                                 </span>
                             </td>
                             <td class="text-muted-2 small">@r.AttemptDate.ToString("MMM d, yyyy")</td>
