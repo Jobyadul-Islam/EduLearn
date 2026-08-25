@@ -13,8 +13,8 @@
         <div asp-validation-summary="All" class="text-danger mb-2"></div>
         <form asp-action="VerifyPin" method="post">
             <div class="mb-4">
-                <label class="form-label">6-Digit PIN</label>
-                <input type="text" name="pin" class="form-control text-center" style="font-size:1.5rem; letter-spacing:.5rem;" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus />
+                <label for="pinInput" class="form-label">6-Digit PIN</label>
+                <input type="text" id="pinInput" name="pin" class="form-control text-center" style="font-size:1.5rem; letter-spacing:.5rem;" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus />
             </div>
             <button type="submit" class="btn btn-primary w-100">Verify PIN</button>
         </form>

@@ -43,7 +43,7 @@
     <div class="col-lg-8">
         @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
         {
-            <img src="@Model.ThumbnailPath" class="img-fluid rounded mb-3" style="max-height:320px; object-fit:cover; width:100%;" />
+            <img src="@Model.ThumbnailPath" alt="@Model.Title" class="img-fluid rounded mb-3" style="max-height:320px; object-fit:cover; width:100%;" />
         }
         <div class="d-flex align-items-center gap-2 mb-2">
             <span class="code-badge">@Model.CourseCode</span>
@@ -57,10 +57,12 @@
         <div class="mb-2">
             @if (reviewCount > 0)
             {
-                for (var i = 1; i <= 5; i++)
-                {
-                    <span class="@(i <= Math.Round(averageRating) ? "star-filled" : "star-empty")" style="font-size:1.1rem;">★</span>
-                }
+                <span aria-hidden="true">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <span class="@(i <= Math.Round(averageRating) ? "star-filled" : "star-empty")" style="font-size:1.1rem;">★</span>
+                    }
+                </span>
                 <span class="text-muted-2">@averageRating.ToString("0.0") out of 5 (@reviewCount review@(reviewCount == 1 ? "" : "s"))</span>
             }
             else
@@ -126,10 +128,10 @@
                             <strong>@review.StudentName</strong>
                             <span class="text-muted-2 small">@review.CreatedAt.ToString("MMM d, yyyy")</span>
                         </div>
-                        <div class="mb-1">
+                        <div class="mb-1" role="img" aria-label="Rating: @review.Rating out of 5">
                             @for (var i = 1; i <= 5; i++)
                             {
-                                <span class="@(i <= review.Rating ? "star-filled" : "star-empty")">★</span>
+                                <span class="@(i <= review.Rating ? "star-filled" : "star-empty")" aria-hidden="true">★</span>
                             }
                         </div>
                         @if (!string.IsNullOrWhiteSpace(review.Comment))

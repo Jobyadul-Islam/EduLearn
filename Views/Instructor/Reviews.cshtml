@@ -91,10 +91,10 @@ else
                     </div>
                     <span class="text-muted-2 small">@review.CreatedAt.ToString("MMM d, yyyy")</span>
                 </div>
-                <div class="mb-1">
+                <div class="mb-1" role="img" aria-label="Rating: @review.Rating out of 5">
                     @for (var i = 1; i <= 5; i++)
                     {
-                        <span class="@(i <= review.Rating ? "star-filled" : "star-empty")">★</span>
+                        <span class="@(i <= review.Rating ? "star-filled" : "star-empty")" aria-hidden="true">★</span>
                     }
                 </div>
                 @if (!string.IsNullOrWhiteSpace((string)review.Comment))

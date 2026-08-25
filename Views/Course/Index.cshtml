@@ -18,22 +18,25 @@
         <p class="text-muted-2 mb-0">Browse every published course on EduLearn.</p>
     </div>
     <form asp-action="Index" method="get" class="d-flex flex-wrap gap-2 align-items-center">
-        <select name="categoryId" class="form-select" onchange="this.form.submit()">
+        <label for="categoryFilterSelect" class="visually-hidden">Filter by category</label>
+        <select id="categoryFilterSelect" name="categoryId" class="form-select" onchange="this.form.submit()">
             <option value="">All Categories</option>
             @foreach (var cat in categories)
             {
                 <option value="@cat.Id" selected="@(categoryId == cat.Id ? "selected" : null)">@cat.Name</option>
             }
         </select>
-        <select name="sort" class="form-select" onchange="this.form.submit()">
+        <label for="sortSelect" class="visually-hidden">Sort courses</label>
+        <select id="sortSelect" name="sort" class="form-select" onchange="this.form.submit()">
             <option value="newest" selected="@(sort == "newest" ? "selected" : null)">Newest</option>
             <option value="popular" selected="@(sort == "popular" ? "selected" : null)">Most Popular</option>
             <option value="rating" selected="@(sort == "rating" ? "selected" : null)">Highest Rated</option>
         </select>
         <div class="search-bar">
-            <input type="text" name="search" class="form-control" placeholder="Search courses..." value="@searchTerm" />
-            <button type="submit" class="btn btn-primary">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <label for="courseSearchInput" class="visually-hidden">Search courses</label>
+            <input type="text" id="courseSearchInput" name="search" class="form-control" placeholder="Search courses..." value="@searchTerm" />
+            <button type="submit" class="btn btn-primary" aria-label="Search">
+                <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             </button>
         </div>
     </form>
@@ -98,10 +101,12 @@ else
                         <div class="small text-muted-2 mb-2">
                             @if (stat.Count > 0)
                             {
-                                for (var i = 1; i <= 5; i++)
-                                {
-                                    <span class="@(i <= Math.Round(stat.Average) ? "star-filled" : "star-empty")">★</span>
-                                }
+                                <span aria-hidden="true">
+                                    @for (var i = 1; i <= 5; i++)
+                                    {
+                                        <span class="@(i <= Math.Round(stat.Average) ? "star-filled" : "star-empty")">★</span>
+                                    }
+                                </span>
                                 <span>@stat.Average.ToString("0.0") (@stat.Count)</span>
                             }
                             else

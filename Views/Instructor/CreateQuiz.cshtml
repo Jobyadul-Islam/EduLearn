@@ -11,8 +11,8 @@
         <input type="hidden" name="LessonId" value="@Model.LessonId" />
 
         <div class="card form-card mb-3">
-            <label class="form-label">Quiz Title</label>
-            <input name="Title" class="form-control" />
+            <label for="quizTitleInput" class="form-label">Quiz Title</label>
+            <input id="quizTitleInput" name="Title" class="form-control" />
         </div>
 
         <div id="questionsContainer">
@@ -20,18 +20,18 @@
             {
                 <div class="card mb-3 question-block">
                     <div class="card-body">
-                        <label class="form-label fw-semibold">Question @(q + 1)</label>
-                        <input name="Questions[@q].QuestionText" class="form-control mb-2" placeholder="Question text" />
+                        <label for="questionText-@q" class="form-label fw-semibold">Question @(q + 1)</label>
+                        <input id="questionText-@q" name="Questions[@q].QuestionText" class="form-control mb-2" placeholder="Question text" />
 
                         <div class="options-container">
                             @for (int o = 0; o < Model.Questions[q].Options.Count; o++)
                             {
                                 <div class="input-group mb-2">
                                     <span class="input-group-text">
-                                        <input type="checkbox" name="Questions[@q].Options[@o].IsCorrect" value="true" title="Correct answer" />
+                                        <input type="checkbox" name="Questions[@q].Options[@o].IsCorrect" value="true" aria-label="Mark option @(o + 1) as correct answer" title="Correct answer" />
                                         <input type="hidden" name="Questions[@q].Options[@o].IsCorrect" value="false" />
                                     </span>
-                                    <input name="Questions[@q].Options[@o].OptionText" class="form-control" placeholder="Option text" />
+                                    <input name="Questions[@q].Options[@o].OptionText" class="form-control" placeholder="Option text" aria-label="Option @(o + 1) text" />
                                 </div>
                             }
                         </div>
@@ -59,22 +59,22 @@
             block.className = 'card mb-3 question-block';
             block.innerHTML = `
                 <div class="card-body">
-                    <label class="form-label fw-semibold">Question ${questionIndex + 1}</label>
-                    <input name="Questions[${questionIndex}].QuestionText" class="form-control mb-2" placeholder="Question text" />
+                    <label for="questionText-${questionIndex}" class="form-label fw-semibold">Question ${questionIndex + 1}</label>
+                    <input id="questionText-${questionIndex}" name="Questions[${questionIndex}].QuestionText" class="form-control mb-2" placeholder="Question text" />
                     <div class="options-container">
                         <div class="input-group mb-2">
                             <span class="input-group-text">
-                                <input type="checkbox" name="Questions[${questionIndex}].Options[0].IsCorrect" value="true" />
+                                <input type="checkbox" name="Questions[${questionIndex}].Options[0].IsCorrect" value="true" aria-label="Mark option 1 as correct answer" />
                                 <input type="hidden" name="Questions[${questionIndex}].Options[0].IsCorrect" value="false" />
                             </span>
-                            <input name="Questions[${questionIndex}].Options[0].OptionText" class="form-control" placeholder="Option text" />
+                            <input name="Questions[${questionIndex}].Options[0].OptionText" class="form-control" placeholder="Option text" aria-label="Option 1 text" />
                         </div>
                         <div class="input-group mb-2">
                             <span class="input-group-text">
-                                <input type="checkbox" name="Questions[${questionIndex}].Options[1].IsCorrect" value="true" />
+                                <input type="checkbox" name="Questions[${questionIndex}].Options[1].IsCorrect" value="true" aria-label="Mark option 2 as correct answer" />
                                 <input type="hidden" name="Questions[${questionIndex}].Options[1].IsCorrect" value="false" />
                             </span>
-                            <input name="Questions[${questionIndex}].Options[1].OptionText" class="form-control" placeholder="Option text" />
+                            <input name="Questions[${questionIndex}].Options[1].OptionText" class="form-control" placeholder="Option text" aria-label="Option 2 text" />
                         </div>
                     </div>
                     <p class="small text-muted-2 mb-0">Check the box next to the correct answer(s).</p>

@@ -15,15 +15,15 @@
             <p class="text-muted-2 small mb-3">No password needed here — if approved, the Admin will email you your login details directly.</p>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Full Name</label>
+                    <label asp-for="FullName" class="form-label">Full Name</label>
                     <input asp-for="FullName" class="form-control" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Email</label>
+                    <label asp-for="Email" class="form-label">Email</label>
                     <input asp-for="Email" class="form-control" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Phone Number</label>
+                    <label asp-for="PhoneNumber" class="form-label">Phone Number</label>
                     <input asp-for="PhoneNumber" class="form-control" />
                 </div>
             </div>
@@ -32,28 +32,28 @@
             <h5 class="mb-3">Academic Background & Skills</h5>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Highest Qualification</label>
+                    <label asp-for="Qualification" class="form-label">Highest Qualification</label>
                     <input asp-for="Qualification" class="form-control" placeholder="e.g. B.Sc. in Computer Science" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Institution</label>
+                    <label asp-for="Institution" class="form-label">Institution</label>
                     <input asp-for="Institution" class="form-control" placeholder="e.g. University of Dhaka" />
                 </div>
                 <div class="col-md-8 mb-3">
-                    <label class="form-label">Skills / Areas of Expertise</label>
+                    <label asp-for="Skills" class="form-label">Skills / Areas of Expertise</label>
                     <input asp-for="Skills" class="form-control" placeholder="e.g. Web Development, Python, Data Analysis" />
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">Years of Experience</label>
+                    <label asp-for="YearsOfExperience" class="form-label">Years of Experience</label>
                     <input asp-for="YearsOfExperience" type="number" class="form-control" min="0" max="60" />
                 </div>
                 <div class="col-12 mb-3">
-                    <label class="form-label">Short Bio</label>
+                    <label asp-for="Bio" class="form-label">Short Bio</label>
                     <textarea asp-for="Bio" class="form-control" rows="4" placeholder="Tell us about your teaching background and why you want to teach on EduLearn."></textarea>
                 </div>
                 <div class="col-12 mb-4">
-                    <label class="form-label">Attach Your CV</label>
-                    <input type="file" name="Resume" class="form-control" accept=".pdf,.doc,.docx" required />
+                    <label for="resumeInput" class="form-label">Attach Your CV</label>
+                    <input type="file" id="resumeInput" name="Resume" class="form-control" accept=".pdf,.doc,.docx" required />
                 </div>
             </div>
 

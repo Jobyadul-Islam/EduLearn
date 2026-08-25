@@ -130,10 +130,12 @@ else
                         <div class="small text-muted-2 mb-2">
                             @if (stat.Count > 0)
                             {
-                                for (var i = 1; i <= 5; i++)
-                                {
-                                    <span class="@(i <= Math.Round(stat.Average) ? "star-filled" : "star-empty")">★</span>
-                                }
+                                <span aria-hidden="true">
+                                    @for (var i = 1; i <= 5; i++)
+                                    {
+                                        <span class="@(i <= Math.Round(stat.Average) ? "star-filled" : "star-empty")">★</span>
+                                    }
+                                </span>
                                 <span>@stat.Average.ToString("0.0") (@stat.Count)</span>
                             }
                             else

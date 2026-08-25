@@ -11,8 +11,8 @@
         <form asp-action="SubmitAssignment" method="post" enctype="multipart/form-data">
             <input type="hidden" name="assignmentId" value="@ViewBag.AssignmentId" />
             <div class="mb-3">
-                <label class="form-label">Upload your file</label>
-                <input type="file" name="SubmissionFile" class="form-control" />
+                <label for="submissionFileInput" class="form-label">Upload your file</label>
+                <input type="file" id="submissionFileInput" name="SubmissionFile" class="form-control" />
             </div>
             <button type="submit" class="btn btn-primary w-100">Submit</button>
         </form>

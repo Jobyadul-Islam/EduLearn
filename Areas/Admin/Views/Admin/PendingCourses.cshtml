@@ -29,7 +29,7 @@ else
                     <div class="col-md-2 mb-3 mb-md-0">
                         @if (!string.IsNullOrEmpty(course.ThumbnailPath))
                         {
-                            <img src="@course.ThumbnailPath" class="img-fluid rounded" style="max-height:100px; object-fit:cover;" />
+                            <img src="@course.ThumbnailPath" alt="@course.Title" class="img-fluid rounded" style="max-height:100px; object-fit:cover;" />
                         }
                         else
                         {
@@ -74,8 +74,8 @@ else
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <label class="form-label">Reason (optional — shown to the instructor)</label>
-                            <textarea name="reason" class="form-control" rows="3" placeholder="e.g. Please add more lesson content before resubmitting."></textarea>
+                            <label for="rejectReason-@course.Id" class="form-label">Reason (optional — shown to the instructor)</label>
+                            <textarea id="rejectReason-@course.Id" name="reason" class="form-control" rows="3" placeholder="e.g. Please add more lesson content before resubmitting."></textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

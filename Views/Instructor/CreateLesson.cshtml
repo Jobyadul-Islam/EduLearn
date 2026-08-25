@@ -12,20 +12,20 @@
         <form asp-action="CreateLesson" method="post" enctype="multipart/form-data">
             <input type="hidden" name="ModuleId" value="@ViewBag.ModuleId" />
             <div class="mb-3">
-                <label class="form-label">Lesson Title</label>
+                <label asp-for="Title" class="form-label">Lesson Title</label>
                 <input asp-for="Title" class="form-control" />
             </div>
             <div class="mb-3">
-                <label class="form-label">Content</label>
+                <label asp-for="Content" class="form-label">Content</label>
                 <textarea asp-for="Content" class="form-control" rows="4"></textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label">Video URL (optional)</label>
+                <label asp-for="VideoUrl" class="form-label">Video URL (optional)</label>
                 <input asp-for="VideoUrl" class="form-control" />
             </div>
             <div class="mb-4">
-                <label class="form-label">Upload File (video/PDF)</label>
-                <input type="file" name="LessonFile" class="form-control" />
+                <label for="lessonFileInput" class="form-label">Upload File (video/PDF)</label>
+                <input type="file" id="lessonFileInput" name="LessonFile" class="form-control" />
             </div>
             <button type="submit" class="btn btn-primary">Save</button>
         </form>
