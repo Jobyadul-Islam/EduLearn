@@ -6,6 +6,9 @@
     var nextLesson = (Dictionary<int, int?>)ViewBag.NextLessonByCourseId;
     var deadlines = (List<EduLearn.Models.Assignment>)ViewBag.UpcomingDeadlines;
     var reviewedCourseIds = (List<int>)ViewBag.ReviewedCourseIds;
+    var certificateError = TempData["CertificateError"] as string;
+    var reviewError = TempData["ReviewError"] as string;
+    var warningType = "warning";
 }
 
 <div class="mb-4">
@@ -13,14 +16,15 @@
     <p class="text-muted-2">Pick up where you left off.</p>
 </div>
 
-@if (TempData["CertificateError"] != null)
-{
-    <div class="alert alert-warning">@TempData["CertificateError"]</div>
-}
-
-@if (TempData["ReviewError"] != null)
-{
-    <div class="alert alert-warning">@TempData["ReviewError"]</div>
+@section Toasts {
+    @if (certificateError != null)
+    {
+        <partial name="_Toast" model="(certificateError, warningType)" />
+    }
+    @if (reviewError != null)
+    {
+        <partial name="_Toast" model="(reviewError, warningType)" />
+    }
 }
 
 @if (deadlines != null && deadlines.Any())

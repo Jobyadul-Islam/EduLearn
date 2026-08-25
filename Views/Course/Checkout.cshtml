@@ -2,6 +2,15 @@
 
 @{
     ViewData["Title"] = "Checkout";
+    var paymentError = TempData["PaymentError"] as string;
+    var dangerType = "danger";
+}
+
+@section Toasts {
+    @if (paymentError != null)
+    {
+        <partial name="_Toast" model="(paymentError, dangerType)" />
+    }
 }
 
 <div class="mx-auto" style="max-width:480px;">
@@ -19,11 +28,6 @@
             <span class="text-muted-2">Total</span>
             <span class="fs-3 fw-bold">TK @Model.Price</span>
         </div>
-
-        @if (TempData["PaymentError"] != null)
-        {
-            <div class="alert alert-danger">@TempData["PaymentError"]</div>
-        }
 
         <form asp-controller="Bkash" asp-action="Pay" method="post">
             <input type="hidden" name="courseId" value="@Model.Id" />

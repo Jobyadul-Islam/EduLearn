@@ -2,6 +2,15 @@
 
 @{
     ViewData["Title"] = "Write a Review";
+    var reviewError = TempData["ReviewError"] as string;
+    var dangerType = "danger";
+}
+
+@section Toasts {
+    @if (reviewError != null)
+    {
+        <partial name="_Toast" model="(reviewError, dangerType)" />
+    }
 }
 
 <style>
@@ -35,11 +44,6 @@
     <p class="text-muted-2 mb-4">Share your experience with <strong>@Model.Title</strong>.</p>
 
     <div class="card form-card">
-        @if (TempData["ReviewError"] != null)
-        {
-            <div class="alert alert-danger">@TempData["ReviewError"]</div>
-        }
-
         <form asp-action="WriteReview" method="post">
             <input type="hidden" name="courseId" value="@Model.Id" />
 

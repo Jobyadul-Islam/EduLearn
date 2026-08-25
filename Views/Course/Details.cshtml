@@ -9,14 +9,20 @@
     var reviews = ViewBag.Reviews;
 }
 
-@if (TempData["PaymentSuccess"] != null)
-{
-    <div class="alert alert-success">@TempData["PaymentSuccess"]</div>
+@{
+    var paymentSuccess = TempData["PaymentSuccess"] as string;
+    var reviewSuccess = TempData["ReviewSuccess"] as string;
+    var successType = "success";
 }
-
-@if (TempData["ReviewSuccess"] != null)
-{
-    <div class="alert alert-success">@TempData["ReviewSuccess"]</div>
+@section Toasts {
+    @if (paymentSuccess != null)
+    {
+        <partial name="_Toast" model="(paymentSuccess, successType)" />
+    }
+    @if (reviewSuccess != null)
+    {
+        <partial name="_Toast" model="(reviewSuccess, successType)" />
+    }
 }
 
 @if (Model.Status != EduLearn.Models.CourseStatus.Approved)

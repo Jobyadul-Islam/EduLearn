@@ -7,6 +7,15 @@
     string statusFilter = ViewBag.StatusFilter;
     string currentUserId = ViewBag.CurrentUserId;
     bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchTerm) || roleFilter != "All" || statusFilter != "All";
+    var emailResult = TempData["EmailResult"] as string;
+    var infoType = "info";
+}
+
+@section Toasts {
+    @if (emailResult != null)
+    {
+        <partial name="_Toast" model="(emailResult, infoType)" />
+    }
 }
 
 <a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
@@ -51,11 +60,6 @@
 @if (hasActiveFilters)
 {
     <p class="text-muted-2 mb-3">Showing @Model.Count matching user@(Model.Count == 1 ? "" : "s")</p>
-}
-
-@if (TempData["EmailResult"] != null)
-{
-    <div class="alert alert-info">@TempData["EmailResult"]</div>
 }
 
 <div class="card">

@@ -1,6 +1,40 @@
 // Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
+// ---------- Toasts: auto-show any server-rendered toast in the layout's toast container ----------
+(function () {
+    document.querySelectorAll('#toastContainer .toast').forEach(function (el) {
+        new bootstrap.Toast(el).show();
+    });
+})();
+
+// ---------- Loading spinner: disables the submit button on any valid form submission ----------
+(function () {
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.hasAttribute('data-no-spinner')) return;
+        if (typeof form.checkValidity === 'function' && !form.checkValidity()) return;
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        if (!submitBtn || submitBtn.disabled) return;
+
+        var originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + originalText;
+
+        // Safety net: if something (e.g. a jQuery-validate rule not covered by
+        // checkValidity, like a mismatched confirm-password) blocks the submit and
+        // the page never navigates away, don't leave the button stuck forever.
+        setTimeout(function () {
+            if (document.body.contains(submitBtn)) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }, 8000);
+    }, true);
+})();
+
 // ---------- Chat widget (backed by /Chat/SendMessage, Gemini-powered) ----------
 (function () {
     var launcher = document.getElementById('chatLauncher');
