@@ -53,6 +53,7 @@ namespace EduLearn.Controllers
             query = sort switch
             {
                 "popular" => query.OrderByDescending(c => c.Enrollments.Count),
+                "rating" => query.OrderByDescending(c => c.Reviews.Any() ? c.Reviews.Average(r => r.Rating) : 0),
                 _ => query.OrderByDescending(c => c.Id)
             };
 
@@ -71,8 +72,20 @@ namespace EduLearn.Controllers
             ViewBag.Categories = _context.Categories.OrderBy(c => c.Name).ToList();
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = totalPages;
+            ViewBag.RatingsByCourseId = GetRatingStats(pagedCourses.Select(c => c.Id));
 
             return View(pagedCourses);
+        }
+
+        // Average rating + review count per course, keyed by CourseId
+        private Dictionary<int, (double Average, int Count)> GetRatingStats(IEnumerable<int> courseIds)
+        {
+            var ids = courseIds.ToList();
+            return _context.Reviews
+                .Where(r => ids.Contains(r.CourseId))
+                .GroupBy(r => r.CourseId)
+                .Select(g => new { CourseId = g.Key, Average = g.Average(r => r.Rating), Count = g.Count() })
+                .ToDictionary(x => x.CourseId, x => (x.Average, x.Count));
         }
 
         // Public course details page
@@ -111,6 +124,16 @@ namespace EduLearn.Controllers
                 ViewBag.IsEnrolled = false;
                 ViewBag.HasFullAccess = course.Price == 0;
             }
+
+            var reviews = (from r in _context.Reviews
+                            join u in _context.Users on r.StudentId equals u.Id
+                            where r.CourseId == id
+                            orderby r.CreatedAt descending
+                            select new { r.Rating, r.Comment, r.CreatedAt, StudentName = u.FullName }).ToList();
+
+            ViewBag.Reviews = reviews;
+            ViewBag.AverageRating = reviews.Count > 0 ? reviews.Average(r => r.Rating) : 0;
+            ViewBag.ReviewCount = reviews.Count;
 
             return View(course);
         }

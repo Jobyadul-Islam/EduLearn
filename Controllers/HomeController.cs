@@ -48,6 +48,13 @@ namespace EduLearn.Controllers
                 .Take(6)
                 .ToList();
 
+            var featuredCourseIds = featuredCourses.Select(c => c.Id).ToList();
+            ViewBag.RatingsByCourseId = _context.Reviews
+                .Where(r => featuredCourseIds.Contains(r.CourseId))
+                .GroupBy(r => r.CourseId)
+                .Select(g => new { CourseId = g.Key, Average = g.Average(r => r.Rating), Count = g.Count() })
+                .ToDictionary(x => x.CourseId, x => (x.Average, x.Count));
+
             return View(featuredCourses);
         }
 
