@@ -1,0 +1,58 @@
+@model List<EduLearn.Models.ViewModels.EnrollmentListItemViewModel>
+
+@{
+    ViewData["Title"] = "All Enrollments";
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">All Enrollments</h2>
+    <p class="text-muted-2">Every student enrollment across every course.</p>
+</div>
+
+<div class="card">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Course</th>
+                <th>Enrolled On</th>
+                <th>Status</th>
+                <th>Paid On</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted-2 py-4">No enrollments yet.</td>
+                </tr>
+            }
+            @foreach (var enrollment in Model)
+            {
+                <tr>
+                    <td>
+                        @enrollment.StudentName
+                        <div class="small text-muted-2">@enrollment.StudentEmail</div>
+                    </td>
+                    <td>
+                        <a asp-controller="Course" asp-action="Details" asp-route-id="@enrollment.CourseId" asp-area="" target="_blank" class="text-decoration-none">@enrollment.CourseTitle</a>
+                    </td>
+                    <td>@enrollment.EnrollDate.ToString("MMM d, yyyy")</td>
+                    <td>
+                        @if (enrollment.Status == EduLearn.Models.EnrollmentStatus.Active)
+                        {
+                            <span class="status-pill approved">Active</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill pending">Pending</span>
+                        }
+                    </td>
+                    <td>@(enrollment.PaymentDate.HasValue ? enrollment.PaymentDate.Value.ToString("MMM d, yyyy") : "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

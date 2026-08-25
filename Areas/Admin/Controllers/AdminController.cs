@@ -49,6 +49,38 @@ namespace EduLearn.Areas.Admin.Controllers
             return View(courses);
         }
 
+        public IActionResult AllCourses()
+        {
+            var courses = _context.Courses
+                .Include(c => c.Category)
+                .Include(c => c.Instructor)
+                .OrderByDescending(c => c.Id)
+                .ToList();
+
+            return View(courses);
+        }
+
+        public IActionResult AllEnrollments()
+        {
+            var enrollments = (from e in _context.Enrollments
+                                join u in _context.Users on e.StudentId equals u.Id
+                                join c in _context.Courses on e.CourseId equals c.Id
+                                orderby e.Id descending
+                                select new EnrollmentListItemViewModel
+                                {
+                                    Id = e.Id,
+                                    StudentName = u.FullName,
+                                    StudentEmail = u.Email,
+                                    CourseId = c.Id,
+                                    CourseTitle = c.Title,
+                                    Status = e.Status,
+                                    EnrollDate = e.EnrollDate,
+                                    PaymentDate = e.PaymentDate
+                                }).ToList();
+
+            return View(enrollments);
+        }
+
         [HttpPost]
         public IActionResult ApproveCourse(int id)
         {

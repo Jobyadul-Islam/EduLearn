@@ -10,22 +10,28 @@
 
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="stat-card stat-primary">
-            <div class="stat-label">Total Users</div>
-            <div class="stat-value">@ViewBag.TotalUsers</div>
-        </div>
+        <a asp-action="Users" class="text-decoration-none">
+            <div class="stat-card stat-primary">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value">@ViewBag.TotalUsers</div>
+            </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="stat-card stat-info">
-            <div class="stat-label">Total Courses</div>
-            <div class="stat-value">@ViewBag.TotalCourses</div>
-        </div>
+        <a asp-action="AllCourses" class="text-decoration-none">
+            <div class="stat-card stat-info">
+                <div class="stat-label">Total Courses</div>
+                <div class="stat-value">@ViewBag.TotalCourses</div>
+            </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="stat-card stat-success">
-            <div class="stat-label">Total Enrollments</div>
-            <div class="stat-value">@ViewBag.TotalEnrollments</div>
-        </div>
+        <a asp-action="AllEnrollments" class="text-decoration-none">
+            <div class="stat-card stat-success">
+                <div class="stat-label">Total Enrollments</div>
+                <div class="stat-value">@ViewBag.TotalEnrollments</div>
+            </div>
+        </a>
     </div>
     <div class="col-md-3">
         <a asp-action="PendingCourses" class="text-decoration-none">

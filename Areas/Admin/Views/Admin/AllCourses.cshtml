@@ -1,0 +1,63 @@
+@model List<EduLearn.Models.Course>
+
+@{
+    ViewData["Title"] = "All Courses";
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">All Courses</h2>
+    <p class="text-muted-2">Every course on EduLearn, regardless of status.</p>
+</div>
+
+<div class="card">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Instructor</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted-2 py-4">No courses yet.</td>
+                </tr>
+            }
+            @foreach (var course in Model)
+            {
+                <tr>
+                    <td>
+                        <span class="code-badge me-2">@course.CourseCode</span>@course.Title
+                    </td>
+                    <td>@course.Category?.Name</td>
+                    <td>@course.Instructor?.FullName</td>
+                    <td>@(course.Price == 0 ? "Free" : $"${course.Price}")</td>
+                    <td>
+                        @switch (course.Status)
+                        {
+                            case EduLearn.Models.CourseStatus.Approved:
+                                <span class="status-pill approved">Approved</span>
+                                break;
+                            case EduLearn.Models.CourseStatus.Pending:
+                                <span class="status-pill pending">Pending</span>
+                                break;
+                            default:
+                                <span class="status-pill rejected">Rejected</span>
+                                break;
+                        }
+                    </td>
+                    <td>
+                        <a asp-controller="Course" asp-action="Details" asp-route-id="@course.Id" asp-area="" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
