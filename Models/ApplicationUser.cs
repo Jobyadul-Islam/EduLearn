@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System;
+using Microsoft.AspNetCore.Identity;
 
 namespace EduLearn.Models
 {
@@ -8,6 +9,7 @@ namespace EduLearn.Models
         public string? ProfilePicture { get; set; }
         public bool IsApproved { get; set; } = true;
         public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         // Instructor application details (populated only for instructor applicants)
         public string? Qualification { get; set; }

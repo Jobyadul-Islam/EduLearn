@@ -1,6 +1,8 @@
 @{
     ViewData["Title"] = "Admin Dashboard";
     int pendingCourses = (int)ViewBag.PendingCoursesCount;
+    var monthly = (List<(DateTime Month, int Count)>)ViewBag.MonthlyRegistrations;
+    int maxRegistrations = monthly.Count > 0 ? Math.Max(1, monthly.Max(m => m.Count)) : 1;
 }
 
 <div class="mb-4">
@@ -40,6 +42,40 @@
                 <div class="stat-value">@pendingCourses</div>
             </div>
         </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <a asp-action="Users" asp-route-role="Student" class="text-decoration-none">
+            <div class="stat-card stat-primary">
+                <div class="stat-label">Total Students</div>
+                <div class="stat-value">@ViewBag.TotalStudents</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a asp-action="Users" asp-route-role="Instructor" class="text-decoration-none">
+            <div class="stat-card stat-info">
+                <div class="stat-label">Total Instructors</div>
+                <div class="stat-value">@ViewBag.TotalInstructors</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card form-card mb-4">
+    <h5 class="mb-3">New Registrations — Last 6 Months</h5>
+    <div class="d-flex align-items-end gap-3" style="height:160px;">
+        @foreach (var bar in monthly)
+        {
+            int heightPct = (int)(bar.Count * 100.0 / maxRegistrations);
+            <div class="d-flex flex-column align-items-center justify-content-end h-100" style="flex:1;">
+                <span class="small fw-semibold mb-1">@bar.Count</span>
+                <div style="width:100%; max-width:48px; height:@(Math.Max(heightPct, 3))%; background:var(--color-primary); border-radius:4px 4px 0 0;"></div>
+                <span class="small text-muted-2 mt-1">@bar.Month.ToString("MMM")</span>
+            </div>
+        }
     </div>
 </div>
 

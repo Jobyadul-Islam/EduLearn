@@ -27,12 +27,28 @@ namespace EduLearn.Areas.Admin.Controllers
             _emailService = emailService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             ViewBag.TotalUsers = _context.Users.Count();
             ViewBag.TotalCourses = _context.Courses.Count();
             ViewBag.TotalEnrollments = _context.Enrollments.Count();
             ViewBag.PendingCoursesCount = _context.Courses.Count(c => c.Status == CourseStatus.Pending);
+
+            ViewBag.TotalStudents = (await _userManager.GetUsersInRoleAsync("Student")).Count;
+            ViewBag.TotalInstructors = (await _userManager.GetUsersInRoleAsync("Instructor")).Count;
+
+            var sixMonthsAgo = new System.DateTime(System.DateTime.Now.Year, System.DateTime.Now.Month, 1).AddMonths(-5);
+            var registrationsByMonth = _context.Users
+                .Where(u => u.CreatedAt >= sixMonthsAgo)
+                .AsEnumerable()
+                .GroupBy(u => new System.DateTime(u.CreatedAt.Year, u.CreatedAt.Month, 1))
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            // Always show all 6 months, even ones with zero registrations, so the chart has no gaps
+            ViewBag.MonthlyRegistrations = Enumerable.Range(0, 6)
+                .Select(i => sixMonthsAgo.AddMonths(i))
+                .Select(month => (Month: month, Count: registrationsByMonth.GetValueOrDefault(month, 0)))
+                .ToList();
 
             return View();
         }
