@@ -55,7 +55,7 @@ namespace EduLearn.Services
                         column.Item().PaddingTop(10).Row(row =>
                         {
                             row.RelativeItem().Text("Total Paid").FontSize(14).Bold();
-                            row.RelativeItem().AlignRight().Text($"${amount:0.00}").FontSize(14).Bold().FontColor("#1D4ED8");
+                            row.RelativeItem().AlignRight().Text($"TK {amount:0.00}").FontSize(14).Bold().FontColor("#1D4ED8");
                         });
 
                         column.Item().PaddingTop(20).Text("This is a simulated receipt for demonstration purposes.").FontSize(9).FontColor(Colors.Grey.Medium);

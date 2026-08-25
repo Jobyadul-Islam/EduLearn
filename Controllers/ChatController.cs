@@ -99,7 +99,7 @@ namespace EduLearn.Controllers
                 {
                     foreach (var c in catalog)
                     {
-                        sb.AppendLine($"- \"{c.Title}\" ({c.CategoryName}, {(c.Price == 0 ? "Free" : $"${c.Price}")}): {c.Description}");
+                        sb.AppendLine($"- \"{c.Title}\" ({c.CategoryName}, {(c.Price == 0 ? "Free" : $"TK {c.Price}")}): {c.Description}");
                     }
                 }
                 else

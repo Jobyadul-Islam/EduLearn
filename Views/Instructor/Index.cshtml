@@ -70,7 +70,7 @@ else
                         {
                             <p class="small text-danger mb-2">Reason: @course.RejectionReason</p>
                         }
-                        <p class="card-text"><strong>@(course.Price == 0 ? "Free" : $"${course.Price}")</strong></p>
+                        <p class="card-text"><strong>@(course.Price == 0 ? "Free" : $"TK {course.Price}")</strong></p>
                         <div class="mt-auto d-flex flex-wrap gap-2">
                             <a asp-action="CourseDetails" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary">Manage Content</a>
                             <a asp-action="EditCourse" asp-route-id="@course.Id" class="btn btn-sm btn-outline-secondary">Edit</a>

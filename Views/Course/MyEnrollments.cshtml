@@ -87,7 +87,7 @@ else
                         }
                         @if (enrollment.Course.Price > 0 && !isActive)
                         {
-                            <a asp-action="Checkout" asp-route-courseId="@enrollment.CourseId" class="btn btn-success mt-auto mb-2">Unlock Full Course — $@enrollment.Course.Price</a>
+                            <a asp-action="Checkout" asp-route-courseId="@enrollment.CourseId" class="btn btn-success mt-auto mb-2">Unlock Full Course — TK @enrollment.Course.Price</a>
                         }
                         @if (pct == 100)
                         {

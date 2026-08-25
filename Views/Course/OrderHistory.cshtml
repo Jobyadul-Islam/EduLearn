@@ -37,7 +37,7 @@ else
                         <td>@payment.CreatedAt.ToString("MMM d, yyyy")</td>
                         <td>@payment.Course.Title</td>
                         <td class="small text-muted-2">@payment.TransactionId</td>
-                        <td>$@payment.Amount.ToString("0.00")</td>
+                        <td>TK @payment.Amount.ToString("0.00")</td>
                         <td>
                             @if (payment.Status == EduLearn.Models.PaymentStatus.Success)
                             {

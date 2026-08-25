@@ -47,7 +47,7 @@ else
                         <p class="small text-muted-2 mb-1">@course.Description</p>
                         <p class="small mb-0">
                             By <strong>@course.Instructor?.FullName</strong> ·
-                            @(course.Price == 0 ? "Free" : $"${course.Price}")
+                            @(course.Price == 0 ? "Free" : $"TK {course.Price}")
                         </p>
                     </div>
                     <div class="col-md-3 text-md-end">

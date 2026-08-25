@@ -124,7 +124,7 @@ else
                         <h5 class="card-title">@course.Title</h5>
                         <p class="text-muted-2 small mb-2">@course.Category?.Name</p>
                         <div class="mt-auto d-flex justify-content-between align-items-center">
-                            <strong>@(course.Price == 0 ? "Free" : $"${course.Price}")</strong>
+                            <strong>@(course.Price == 0 ? "Free" : $"TK {course.Price}")</strong>
                             <a asp-controller="Course" asp-action="Details" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary">View Course</a>
                         </div>
                     </div>

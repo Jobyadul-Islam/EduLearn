@@ -87,7 +87,7 @@
     <div class="col-lg-4">
         <div class="card" style="position:sticky; top:1rem;">
             <div class="card-body text-center">
-                <h3 class="mb-3">@(Model.Price == 0 ? "Free" : $"${Model.Price}")</h3>
+                <h3 class="mb-3">@(Model.Price == 0 ? "Free" : $"TK {Model.Price}")</h3>
                 @if (User.IsInRole("Instructor"))
                 {
                     <p class="text-muted-2 small mb-2">Instructor accounts don't enroll in courses.</p>
@@ -109,7 +109,7 @@
                         else
                         {
                             <div class="alert alert-warning text-center">Enrolled — free preview only</div>
-                            <a asp-action="Checkout" asp-route-courseId="@Model.Id" class="btn btn-success w-100 mb-2">Unlock Full Course — $@Model.Price</a>
+                            <a asp-action="Checkout" asp-route-courseId="@Model.Id" class="btn btn-success w-100 mb-2">Unlock Full Course — TK @Model.Price</a>
                         }
                         <a asp-action="MyEnrollments" class="btn btn-outline-primary w-100">Go to My Enrollments</a>
                     }

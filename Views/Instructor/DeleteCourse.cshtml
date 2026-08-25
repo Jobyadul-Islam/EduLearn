@@ -16,7 +16,7 @@
             <dt class="col-sm-4">Category</dt>
             <dd class="col-sm-8">@Model.Category?.Name</dd>
             <dt class="col-sm-4">Price</dt>
-            <dd class="col-sm-8">@(Model.Price == 0 ? "Free" : $"${Model.Price}")</dd>
+            <dd class="col-sm-8">@(Model.Price == 0 ? "Free" : $"TK {Model.Price}")</dd>
         </dl>
 
         <form asp-action="DeleteCourse" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
