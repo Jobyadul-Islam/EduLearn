@@ -1,0 +1,66 @@
+@model IEnumerable<dynamic>
+
+@{
+    ViewData["Title"] = "Quiz Results";
+    var myCourses = (List<EduLearn.Models.Course>)ViewBag.MyCourses;
+    int? selectedCourseId = ViewBag.SelectedCourseId;
+}
+
+<div class="mb-4">
+    <h2 class="section-title">Quiz Results</h2>
+    <p class="text-muted-2">How students scored on quizzes across your courses. Multiple-choice quizzes are graded automatically.</p>
+</div>
+
+<form asp-action="QuizResults" method="get" class="mb-3" style="max-width:300px;">
+    <label for="courseFilterSelect" class="visually-hidden">Filter by course</label>
+    <select id="courseFilterSelect" name="courseId" class="form-select" onchange="this.form.submit()">
+        <option value="">All Courses</option>
+        @foreach (var course in myCourses)
+        {
+            <option value="@course.Id" selected="@(selectedCourseId == course.Id ? "selected" : null)">@course.Title</option>
+        }
+    </select>
+</form>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No quiz attempts yet@(selectedCourseId.HasValue ? " for this course" : "").</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Quiz</th>
+                        <th>Score</th>
+                        <th>Attempted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        int percentage = r.TotalQuestions > 0 ? (int)Math.Round(100.0 * r.Score / r.TotalQuestions) : 0;
+                        <tr>
+                            <td>@r.StudentName</td>
+                            <td>@r.CourseTitle</td>
+                            <td>@r.QuizTitle</td>
+                            <td>
+                                <span class="@(percentage >= 60 ? "status-pill approved" : "status-pill pending")">
+                                    @r.Score/@r.TotalQuestions (@percentage%)
+                                </span>
+                            </td>
+                            <td class="text-muted-2 small">@r.AttemptDate.ToString("MMM d, yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

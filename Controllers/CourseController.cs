@@ -326,6 +326,8 @@ namespace EduLearn.Controllers
                 .Include(l => l.Module)
                 .ThenInclude(m => m.Course)
                 .Include(l => l.Assignments)
+                .Include(l => l.Quizzes)
+                .ThenInclude(q => q.Questions)
                 .FirstOrDefault(l => l.Id == id);
 
             if (lesson == null) return NotFound();
@@ -357,6 +359,11 @@ namespace EduLearn.Controllers
                 .Where(s => s.StudentId == userId)
                 .Select(s => s.AssignmentId)
                 .ToList();
+
+            var quizIds = lesson.Quizzes.Select(q => q.Id).ToList();
+            ViewBag.QuizResultsByQuizId = _context.QuizResults
+                .Where(r => r.StudentId == userId && quizIds.Contains(r.QuizId))
+                .ToDictionary(r => r.QuizId, r => r);
 
             return View(lesson);
         }
@@ -390,6 +397,85 @@ namespace EduLearn.Controllers
             _context.SaveChanges();
 
             return RedirectToAction("ViewLesson", new { id = lessonId });
+        }
+
+        [Authorize]
+        public IActionResult TakeQuiz(int quizId)
+        {
+            var quiz = _context.Quizzes
+                .Include(q => q.Questions)
+                .ThenInclude(qq => qq.Options)
+                .FirstOrDefault(q => q.Id == quizId);
+
+            if (quiz == null) return NotFound();
+
+            return View(quiz);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public IActionResult SubmitQuiz(int quizId, List<int> selectedOptionIds)
+        {
+            var quiz = _context.Quizzes
+                .Include(q => q.Questions)
+                .ThenInclude(qq => qq.Options)
+                .FirstOrDefault(q => q.Id == quizId);
+
+            if (quiz == null) return NotFound();
+
+            selectedOptionIds ??= new List<int>();
+            var selectedSet = new HashSet<int>(selectedOptionIds);
+
+            int score = 0;
+            foreach (var question in quiz.Questions)
+            {
+                var correctSet = question.Options.Where(o => o.IsCorrect).Select(o => o.Id).ToHashSet();
+                var selectedForQuestion = question.Options.Select(o => o.Id).Where(selectedSet.Contains).ToHashSet();
+
+                if (correctSet.SetEquals(selectedForQuestion))
+                {
+                    score++;
+                }
+            }
+
+            var userId = _userManager.GetUserId(User);
+            var existingResult = _context.QuizResults
+                .FirstOrDefault(r => r.QuizId == quizId && r.StudentId == userId);
+
+            if (existingResult != null)
+            {
+                existingResult.Score = score;
+                existingResult.TotalQuestions = quiz.Questions.Count;
+                existingResult.AttemptDate = DateTime.Now;
+            }
+            else
+            {
+                _context.QuizResults.Add(new QuizResult
+                {
+                    QuizId = quizId,
+                    StudentId = userId,
+                    Score = score,
+                    TotalQuestions = quiz.Questions.Count,
+                    AttemptDate = DateTime.Now
+                });
+            }
+
+            _context.SaveChanges();
+
+            return RedirectToAction("QuizResult", new { quizId });
+        }
+
+        [Authorize]
+        public IActionResult QuizResult(int quizId)
+        {
+            var userId = _userManager.GetUserId(User);
+            var result = _context.QuizResults
+                .Include(r => r.Quiz)
+                .FirstOrDefault(r => r.QuizId == quizId && r.StudentId == userId);
+
+            if (result == null) return NotFound();
+
+            return View(result);
         }
 
         [Authorize]

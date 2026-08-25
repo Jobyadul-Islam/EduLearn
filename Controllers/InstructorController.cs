@@ -98,6 +98,10 @@ namespace EduLearn.Controllers
                 .Include(c => c.Modules)
                 .ThenInclude(m => m.Lessons)
                 .ThenInclude(l => l.Assignments)
+                .Include(c => c.Modules)
+                .ThenInclude(m => m.Lessons)
+                .ThenInclude(l => l.Quizzes)
+                .ThenInclude(q => q.Questions)
                 .FirstOrDefault(c => c.Id == id && c.InstructorId == userId);
 
             if (course == null) return NotFound();
@@ -238,6 +242,55 @@ namespace EduLearn.Controllers
             ViewBag.SelectedCourseId = courseId;
 
             return View(reviews);
+        }
+
+        // ---------------- Quiz Results ----------------
+
+        public IActionResult QuizResults(int? courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+            var myCourses = _context.Courses.Where(c => c.InstructorId == userId).ToList();
+            var myCourseIds = myCourses.Select(c => c.Id).ToList();
+
+            var resultsQuery = from r in _context.QuizResults
+                                join q in _context.Quizzes on r.QuizId equals q.Id
+                                join l in _context.Lessons on q.LessonId equals l.Id
+                                join m in _context.Modules on l.ModuleId equals m.Id
+                                join u in _context.Users on r.StudentId equals u.Id
+                                where myCourseIds.Contains(m.CourseId)
+                                select new
+                                {
+                                    r.Score,
+                                    r.TotalQuestions,
+                                    r.AttemptDate,
+                                    QuizTitle = q.Title,
+                                    StudentName = u.FullName,
+                                    CourseId = m.CourseId
+                                };
+
+            if (courseId.HasValue)
+            {
+                resultsQuery = resultsQuery.Where(r => r.CourseId == courseId.Value);
+            }
+
+            var results = resultsQuery
+                .OrderByDescending(r => r.AttemptDate)
+                .ToList()
+                .Select(r => new
+                {
+                    r.Score,
+                    r.TotalQuestions,
+                    r.AttemptDate,
+                    r.QuizTitle,
+                    r.StudentName,
+                    CourseTitle = myCourses.First(c => c.Id == r.CourseId).Title
+                })
+                .ToList();
+
+            ViewBag.MyCourses = myCourses;
+            ViewBag.SelectedCourseId = courseId;
+
+            return View(results);
         }
 
         private async Task<bool> IsCurrentInstructorApproved()

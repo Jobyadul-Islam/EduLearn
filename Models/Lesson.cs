@@ -18,5 +18,8 @@ namespace EduLearn.Models
 
         [ValidateNever]
         public ICollection<Assignment> Assignments { get; set; }
+
+        [ValidateNever]
+        public ICollection<Quiz> Quizzes { get; set; }
     }
 }

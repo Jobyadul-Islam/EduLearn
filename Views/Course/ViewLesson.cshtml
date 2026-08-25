@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = Model.Title;
     var submittedIds = (List<int>)ViewBag.SubmittedAssignmentIds;
+    var quizResults = (Dictionary<int, EduLearn.Models.QuizResult>)ViewBag.QuizResultsByQuizId;
 }
 
 <a asp-action="Details" asp-route-id="@Model.Module.CourseId" class="text-decoration-none small text-muted-2">← Back to Course</a>
@@ -71,6 +72,33 @@
                     else
                     {
                         <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-primary">Submit Assignment</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@if (Model.Quizzes != null && Model.Quizzes.Any())
+{
+    <h4 class="mt-4 section-title h5">Quizzes</h4>
+    @foreach (var quiz in Model.Quizzes)
+    {
+        <div class="card mb-2">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1">@quiz.Title</h5>
+                    <p class="mb-0 text-muted-2 small">@quiz.Questions.Count question@(quiz.Questions.Count == 1 ? "" : "s")</p>
+                </div>
+                <div class="text-end">
+                    @if (quizResults.TryGetValue(quiz.Id, out var result))
+                    {
+                        <div class="mb-2"><span class="status-pill approved">Scored @result.Score/@result.TotalQuestions</span></div>
+                        <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-outline-primary">Retake Quiz</a>
+                    }
+                    else
+                    {
+                        <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-primary">Take Quiz</a>
                     }
                 </div>
             </div>

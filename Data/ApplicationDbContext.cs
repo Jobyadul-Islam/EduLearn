@@ -59,7 +59,7 @@ namespace EduLearn.Data
 
             builder.Entity<Quiz>()
                 .HasOne(q => q.Lesson)
-                .WithMany()
+                .WithMany(l => l.Quizzes)
                 .HasForeignKey(q => q.LessonId)
                 .OnDelete(DeleteBehavior.Cascade);
 
