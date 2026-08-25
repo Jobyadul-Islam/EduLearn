@@ -94,7 +94,7 @@ else
                 <div class="mb-1">
                     @for (var i = 1; i <= 5; i++)
                     {
-                        <span style="color:@(i <= review.Rating ? "#FFC93C" : "#d8d8d8");">★</span>
+                        <span class="@(i <= review.Rating ? "star-filled" : "star-empty")">★</span>
                     }
                 </div>
                 @if (!string.IsNullOrWhiteSpace((string)review.Comment))

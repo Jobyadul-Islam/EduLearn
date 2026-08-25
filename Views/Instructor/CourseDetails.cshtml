@@ -9,7 +9,7 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-4">
     <div>
         <span class="code-badge mb-2 d-inline-block">@Model.CourseCode</span>
-        <h2 class="mb-1">@Model.Title</h2>
+        <h2 class="section-title mb-1">@Model.Title</h2>
         <p class="text-muted-2 mb-0">@Model.Description</p>
     </div>
     <a asp-action="CreateModule" asp-route-courseId="@Model.Id" class="btn btn-primary">+ Add Module</a>

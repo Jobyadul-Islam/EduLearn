@@ -53,7 +53,7 @@
             {
                 for (var i = 1; i <= 5; i++)
                 {
-                    <span style="color:@(i <= Math.Round(averageRating) ? "#FFC93C" : "#d8d8d8"); font-size:1.1rem;">★</span>
+                    <span class="@(i <= Math.Round(averageRating) ? "star-filled" : "star-empty")" style="font-size:1.1rem;">★</span>
                 }
                 <span class="text-muted-2">@averageRating.ToString("0.0") out of 5 (@reviewCount review@(reviewCount == 1 ? "" : "s"))</span>
             }
@@ -123,7 +123,7 @@
                         <div class="mb-1">
                             @for (var i = 1; i <= 5; i++)
                             {
-                                <span style="color:@(i <= review.Rating ? "#FFC93C" : "#d8d8d8");">★</span>
+                                <span class="@(i <= review.Rating ? "star-filled" : "star-empty")">★</span>
                             }
                         </div>
                         @if (!string.IsNullOrWhiteSpace(review.Comment))

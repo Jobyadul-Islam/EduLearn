@@ -100,7 +100,7 @@ else
                             {
                                 for (var i = 1; i <= 5; i++)
                                 {
-                                    <span style="color:@(i <= Math.Round(stat.Average) ? "#FFC93C" : "#d8d8d8");">★</span>
+                                    <span class="@(i <= Math.Round(stat.Average) ? "star-filled" : "star-empty")">★</span>
                                 }
                                 <span>@stat.Average.ToString("0.0") (@stat.Count)</span>
                             }
