@@ -50,8 +50,9 @@ namespace EduLearn.Tests.Integration
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
             var mockEmailService = TestHelpers.CreateFakeEmailService();
+            var mockNotificationService = new Mock<EduLearn.Services.INotificationService>();
 
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object);
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object, mockNotificationService.Object);
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             // 1. Enroll (free course -> should start Active with immediate full access)
@@ -60,6 +61,12 @@ namespace EduLearn.Tests.Integration
 
             var enrollment = context.Enrollments.Single(e => e.CourseId == course.Id && e.StudentId == student.Id);
             Assert.Equal(EnrollmentStatus.Active, enrollment.Status);
+
+            // The instructor should be notified about the new enrollment.
+            mockNotificationService.Verify(m => m.NotifyAsync(
+                instructor.Id,
+                It.Is<string>(msg => msg.Contains(student.FullName) && msg.Contains(course.Title)),
+                $"/Instructor/CourseDetails/{course.Id}"), Times.Once);
 
             // 2. Certificate should NOT be available yet — no lessons completed
             var earlyCertResult = controller.Certificate(course.Id);
@@ -108,8 +115,9 @@ namespace EduLearn.Tests.Integration
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
             var mockEmailService = TestHelpers.CreateFakeEmailService();
+            var mockNotificationService = new Mock<EduLearn.Services.INotificationService>();
 
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object);
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object, mockNotificationService.Object);
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             await controller.Enroll(course.Id);
@@ -117,6 +125,10 @@ namespace EduLearn.Tests.Integration
 
             var enrollmentCount = context.Enrollments.Count(e => e.CourseId == course.Id && e.StudentId == student.Id);
             Assert.Equal(1, enrollmentCount);
+
+            // The second call is a no-op (already enrolled), so the instructor must only be notified once.
+            mockNotificationService.Verify(m => m.NotifyAsync(
+                instructor.Id, It.IsAny<string>(), It.IsAny<string>()), Times.Once);
         }
     }
 }

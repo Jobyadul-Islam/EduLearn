@@ -19,13 +19,15 @@ namespace EduLearn.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IWebHostEnvironment _environment;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
-        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment, IEmailService emailService)
+        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment, IEmailService emailService, INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _environment = environment;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         private const int CoursesPerPage = 4;
@@ -188,6 +190,11 @@ namespace EduLearn.Controllers
                 // Best-effort: enrollment already succeeded, so a failed/undeliverable email
                 // (expected for made-up test addresses) must not block or roll it back.
                 await _emailService.SendEmailAsync(student.Email, $"You're enrolled in {course.Title}", body);
+
+                await _notificationService.NotifyAsync(
+                    course.InstructorId,
+                    $"{student.FullName} enrolled in \"{course.Title}\".",
+                    $"/Instructor/CourseDetails/{course.Id}");
             }
 
             return RedirectToAction("Details", new { id = courseId });

@@ -50,7 +50,7 @@ namespace EduLearn.Tests.Integration
             context.SaveChanges();
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             var result = controller.WriteReview(course.Id, 5, "Great course!");
@@ -76,7 +76,7 @@ namespace EduLearn.Tests.Integration
             context.SaveChanges();
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             // First review should go through.
@@ -108,7 +108,7 @@ namespace EduLearn.Tests.Integration
             context.SaveChanges();
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             var result = controller.WriteReview(course.Id, 0, "invalid rating");

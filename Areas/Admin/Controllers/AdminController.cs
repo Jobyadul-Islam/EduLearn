@@ -19,12 +19,14 @@ namespace EduLearn.Areas.Admin.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
-        public AdminController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IEmailService emailService)
+        public AdminController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IEmailService emailService, INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         public async Task<IActionResult> Index()
@@ -174,7 +176,7 @@ namespace EduLearn.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public IActionResult ApproveCourse(int id)
+        public async Task<IActionResult> ApproveCourse(int id)
         {
             var course = _context.Courses.Find(id);
             if (course != null)
@@ -182,12 +184,17 @@ namespace EduLearn.Areas.Admin.Controllers
                 course.Status = CourseStatus.Approved;
                 course.RejectionReason = null;
                 _context.SaveChanges();
+
+                await _notificationService.NotifyAsync(
+                    course.InstructorId,
+                    $"Your course \"{course.Title}\" has been approved and is now live.",
+                    $"/Instructor/CourseDetails/{course.Id}");
             }
             return RedirectToAction("PendingCourses");
         }
 
         [HttpPost]
-        public IActionResult RejectCourse(int id, string? reason)
+        public async Task<IActionResult> RejectCourse(int id, string? reason)
         {
             var course = _context.Courses.Find(id);
             if (course != null)
@@ -195,6 +202,15 @@ namespace EduLearn.Areas.Admin.Controllers
                 course.Status = CourseStatus.Rejected;
                 course.RejectionReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
                 _context.SaveChanges();
+
+                var message = course.RejectionReason != null
+                    ? $"Your course \"{course.Title}\" was rejected. Reason: {course.RejectionReason}"
+                    : $"Your course \"{course.Title}\" was rejected.";
+
+                await _notificationService.NotifyAsync(
+                    course.InstructorId,
+                    message,
+                    $"/Instructor/EditCourse/{course.Id}");
             }
             return RedirectToAction("PendingCourses");
         }
@@ -282,6 +298,11 @@ namespace EduLearn.Areas.Admin.Controllers
                 <p>— EduLearn</p>";
 
             var sent = await _emailService.SendEmailAsync(user.Email, "Your EduLearn Instructor Account is Approved", body);
+
+            await _notificationService.NotifyAsync(
+                user.Id,
+                "Your instructor application has been approved! Check your email for login details.",
+                "/Instructor");
 
             TempData["EmailResult"] = sent
                 ? $"Instructor approved and login email sent to {user.Email}."

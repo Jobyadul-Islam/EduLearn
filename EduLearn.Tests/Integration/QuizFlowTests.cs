@@ -84,7 +84,7 @@ namespace EduLearn.Tests.Integration
             var (_, _, _, _, quiz) = SeedCourseWithQuiz(context, instructor.Id);
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             var result = controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 });
@@ -110,7 +110,7 @@ namespace EduLearn.Tests.Integration
             var (_, _, _, _, quiz) = SeedCourseWithQuiz(context, instructor.Id);
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 }); // both correct
@@ -135,7 +135,7 @@ namespace EduLearn.Tests.Integration
             var (_, course, _, _, quiz) = SeedCourseWithQuiz(context, owningInstructor.Id);
 
             var studentUserManager = TestHelpers.CreateMockUserManager(student);
-            var courseController = new CourseController(context, studentUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>());
+            var courseController = new CourseController(context, studentUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
             TestHelpers.AttachControllerContext(courseController, student.Id);
             courseController.SubmitQuiz(quiz.Id, new List<int> { 10, 12 });
 
