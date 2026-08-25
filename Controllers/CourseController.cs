@@ -423,23 +423,7 @@ namespace EduLearn.Controllers
 
             if (quiz == null) return NotFound();
 
-            selectedOptionIds ??= new List<int>();
-            var selectedSet = new HashSet<int>(selectedOptionIds);
-
-            int score = 0;
-            foreach (var question in quiz.Questions)
-            {
-                var correctSet = question.Options.Where(o => o.IsCorrect).Select(o => o.Id).ToHashSet();
-                var selectedForQuestion = question.Options.Select(o => o.Id).Where(selectedSet.Contains).ToHashSet();
-
-                if (correctSet.SetEquals(selectedForQuestion))
-                {
-                    score++;
-                }
-            }
-
-            int totalQuestions = quiz.Questions.Count;
-            bool passed = totalQuestions > 0 && (100.0 * score / totalQuestions) >= quiz.PassMarkPercentage;
+            var grade = QuizGrader.Grade(quiz, selectedOptionIds);
 
             var userId = _userManager.GetUserId(User);
             var existingResult = _context.QuizResults
@@ -447,9 +431,9 @@ namespace EduLearn.Controllers
 
             if (existingResult != null)
             {
-                existingResult.Score = score;
-                existingResult.TotalQuestions = totalQuestions;
-                existingResult.Passed = passed;
+                existingResult.Score = grade.Score;
+                existingResult.TotalQuestions = grade.TotalQuestions;
+                existingResult.Passed = grade.Passed;
                 existingResult.AttemptDate = DateTime.Now;
             }
             else
@@ -458,9 +442,9 @@ namespace EduLearn.Controllers
                 {
                     QuizId = quizId,
                     StudentId = userId,
-                    Score = score,
-                    TotalQuestions = totalQuestions,
-                    Passed = passed,
+                    Score = grade.Score,
+                    TotalQuestions = grade.TotalQuestions,
+                    Passed = grade.Passed,
                     AttemptDate = DateTime.Now
                 });
             }
@@ -499,7 +483,7 @@ namespace EduLearn.Controllers
                 .Where(p => p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == courseId)
                 .ToList();
 
-            if (totalLessons == 0 || completedProgress.Count < totalLessons)
+            if (!CourseProgressCalculator.IsComplete(totalLessons, completedProgress.Count))
             {
                 TempData["CertificateError"] = "Complete every lesson in this course to unlock your certificate.";
                 return RedirectToAction("MyEnrollments");
@@ -584,12 +568,11 @@ namespace EduLearn.Controllers
         private bool HasCompletedCourse(string userId, int courseId)
         {
             var totalLessons = _context.Lessons.Count(l => l.Module.CourseId == courseId);
-            if (totalLessons == 0) return false;
 
             var completedLessons = _context.LessonProgresses.Count(p =>
                 p.StudentId == userId && p.IsCompleted && p.Lesson.Module.CourseId == courseId);
 
-            return completedLessons == totalLessons;
+            return CourseProgressCalculator.IsComplete(totalLessons, completedLessons);
         }
 
         [Authorize]

@@ -29,4 +29,11 @@
     <Folder Include="wwwroot\uploads\thumbnails\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="EduLearn.Tests\**" />
+    <Content Remove="EduLearn.Tests\**" />
+    <EmbeddedResource Remove="EduLearn.Tests\**" />
+    <None Remove="EduLearn.Tests\**" />
+  </ItemGroup>
+
 </Project>
