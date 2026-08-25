@@ -119,6 +119,31 @@ namespace EduLearn.Areas.Admin.Controllers
             return View();
         }
 
+        public IActionResult Analytics()
+        {
+            // EF Core can't put a tuple literal inside a SQL expression tree, so the
+            // ranking/limiting happens in SQL via an anonymous type, then the small
+            // materialized result is converted to named tuples for the view.
+            ViewBag.MostPopular = _context.Courses
+                .Select(c => new { c.Id, c.Title, EnrollmentCount = c.Enrollments.Count })
+                .OrderByDescending(c => c.EnrollmentCount)
+                .Take(10)
+                .ToList()
+                .Select(c => (c.Id, c.Title, c.EnrollmentCount))
+                .ToList();
+
+            ViewBag.TopRated = _context.Courses
+                .Select(c => new { c.Id, c.Title, ReviewCount = c.Reviews.Count, AverageRating = c.Reviews.Average(r => (double?)r.Rating) })
+                .Where(c => c.ReviewCount > 0)
+                .OrderByDescending(c => c.AverageRating)
+                .Take(10)
+                .ToList()
+                .Select(c => (c.Id, c.Title, c.ReviewCount, c.AverageRating))
+                .ToList();
+
+            return View();
+        }
+
         [HttpPost]
         public IActionResult ApproveCourse(int id)
         {
