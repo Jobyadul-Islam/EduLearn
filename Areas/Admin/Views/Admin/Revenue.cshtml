@@ -8,9 +8,12 @@
 
 <a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
 
-<div class="mb-4 mt-2">
-    <h2 class="section-title mb-1">Revenue Report</h2>
-    <p class="text-muted-2">Total and monthly revenue from paid course transactions.</p>
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4 mt-2">
+    <div>
+        <h2 class="section-title mb-1">Revenue Report</h2>
+        <p class="text-muted-2 mb-0">Total and monthly revenue from paid course transactions.</p>
+    </div>
+    <a asp-action="ExportRevenuePdf" class="btn btn-outline-primary">Export PDF</a>
 </div>
 
 <div class="row g-3 mb-4">

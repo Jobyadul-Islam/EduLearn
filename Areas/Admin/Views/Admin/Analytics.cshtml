@@ -6,9 +6,12 @@
 
 <a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
 
-<div class="mb-4 mt-2">
-    <h2 class="section-title mb-1">Course Analytics</h2>
-    <p class="text-muted-2">Most popular and highest-rated courses across the platform.</p>
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4 mt-2">
+    <div>
+        <h2 class="section-title mb-1">Course Analytics</h2>
+        <p class="text-muted-2 mb-0">Most popular and highest-rated courses across the platform.</p>
+    </div>
+    <a asp-action="ExportAnalyticsPdf" class="btn btn-outline-primary">Export PDF</a>
 </div>
 
 <div class="row g-4">

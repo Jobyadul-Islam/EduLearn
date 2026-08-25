@@ -99,9 +99,38 @@ namespace EduLearn.Areas.Admin.Controllers
 
         public IActionResult Revenue()
         {
-            var successfulPayments = _context.Payments.Where(p => p.Status == PaymentStatus.Success);
+            var (total, monthly) = GetRevenueData();
+            ViewBag.TotalRevenue = total;
+            ViewBag.MonthlyRevenue = monthly;
+            return View();
+        }
 
-            ViewBag.TotalRevenue = successfulPayments.Sum(p => (decimal?)p.Amount) ?? 0;
+        public IActionResult ExportRevenuePdf()
+        {
+            var (total, monthly) = GetRevenueData();
+            var pdf = ReportPdfService.GenerateRevenueReport(total, monthly);
+            return File(pdf, "application/pdf", $"Revenue-Report-{System.DateTime.Now:yyyyMMdd}.pdf");
+        }
+
+        public IActionResult Analytics()
+        {
+            var (mostPopular, topRated) = GetAnalyticsData();
+            ViewBag.MostPopular = mostPopular;
+            ViewBag.TopRated = topRated;
+            return View();
+        }
+
+        public IActionResult ExportAnalyticsPdf()
+        {
+            var (mostPopular, topRated) = GetAnalyticsData();
+            var pdf = ReportPdfService.GenerateAnalyticsReport(mostPopular, topRated);
+            return File(pdf, "application/pdf", $"Course-Analytics-{System.DateTime.Now:yyyyMMdd}.pdf");
+        }
+
+        private (decimal Total, List<(System.DateTime Month, decimal Revenue)> Monthly) GetRevenueData()
+        {
+            var successfulPayments = _context.Payments.Where(p => p.Status == PaymentStatus.Success);
+            var total = successfulPayments.Sum(p => (decimal?)p.Amount) ?? 0;
 
             var sixMonthsAgo = new System.DateTime(System.DateTime.Now.Year, System.DateTime.Now.Month, 1).AddMonths(-5);
             var revenueByMonth = successfulPayments
@@ -110,21 +139,21 @@ namespace EduLearn.Areas.Admin.Controllers
                 .GroupBy(p => new System.DateTime(p.CreatedAt.Year, p.CreatedAt.Month, 1))
                 .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
 
-            // Always show all 6 months, even ones with zero revenue, so the chart has no gaps
-            ViewBag.MonthlyRevenue = Enumerable.Range(0, 6)
+            // Always show all 6 months, even ones with zero revenue, so the chart/report has no gaps
+            var monthly = Enumerable.Range(0, 6)
                 .Select(i => sixMonthsAgo.AddMonths(i))
                 .Select(month => (Month: month, Revenue: revenueByMonth.GetValueOrDefault(month, 0)))
                 .ToList();
 
-            return View();
+            return (total, monthly);
         }
 
-        public IActionResult Analytics()
+        private (List<(int Id, string Title, int EnrollmentCount)> MostPopular, List<(int Id, string Title, int ReviewCount, double? AverageRating)> TopRated) GetAnalyticsData()
         {
             // EF Core can't put a tuple literal inside a SQL expression tree, so the
             // ranking/limiting happens in SQL via an anonymous type, then the small
-            // materialized result is converted to named tuples for the view.
-            ViewBag.MostPopular = _context.Courses
+            // materialized result is converted to named tuples for the view/PDF.
+            var mostPopular = _context.Courses
                 .Select(c => new { c.Id, c.Title, EnrollmentCount = c.Enrollments.Count })
                 .OrderByDescending(c => c.EnrollmentCount)
                 .Take(10)
@@ -132,7 +161,7 @@ namespace EduLearn.Areas.Admin.Controllers
                 .Select(c => (c.Id, c.Title, c.EnrollmentCount))
                 .ToList();
 
-            ViewBag.TopRated = _context.Courses
+            var topRated = _context.Courses
                 .Select(c => new { c.Id, c.Title, ReviewCount = c.Reviews.Count, AverageRating = c.Reviews.Average(r => (double?)r.Rating) })
                 .Where(c => c.ReviewCount > 0)
                 .OrderByDescending(c => c.AverageRating)
@@ -141,7 +170,7 @@ namespace EduLearn.Areas.Admin.Controllers
                 .Select(c => (c.Id, c.Title, c.ReviewCount, c.AverageRating))
                 .ToList();
 
-            return View();
+            return (mostPopular, topRated);
         }
 
         [HttpPost]
