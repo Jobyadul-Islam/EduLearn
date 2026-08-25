@@ -1,5 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using EduLearn.Data;
@@ -16,12 +21,14 @@ namespace EduLearn.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
+        private readonly IWebHostEnvironment _environment;
 
-        public ApplyController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService)
+        public ApplyController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IWebHostEnvironment environment)
         {
             _context = context;
             _userManager = userManager;
             _notificationService = notificationService;
+            _environment = environment;
         }
 
         // Step 1: enter the PIN emailed by the Admin
@@ -59,7 +66,7 @@ namespace EduLearn.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Form(InstructorApplicationViewModel model)
+        public async Task<IActionResult> Form(InstructorApplicationViewModel model, IFormFile? Resume)
         {
             var pinId = HttpContext.Session.GetInt32(SessionKey);
             if (pinId == null)
@@ -75,6 +82,11 @@ namespace EduLearn.Controllers
                 return View("Index");
             }
 
+            if (Resume == null || Resume.Length == 0)
+            {
+                ModelState.AddModelError("", "Please attach your CV.");
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -84,6 +96,15 @@ namespace EduLearn.Controllers
             {
                 ModelState.AddModelError("Email", "An account with this email already exists.");
                 return View(model);
+            }
+
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "resumes");
+            Directory.CreateDirectory(uploadsFolder);
+            var uniqueFileName = Guid.NewGuid().ToString() + "_" + Resume!.FileName;
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await Resume.CopyToAsync(stream);
             }
 
             var user = new ApplicationUser
@@ -97,11 +118,15 @@ namespace EduLearn.Controllers
                 Skills = model.Skills,
                 YearsOfExperience = model.YearsOfExperience,
                 Bio = model.Bio,
+                ResumePath = "/uploads/resumes/" + uniqueFileName,
                 IsApproved = false,
                 IsActive = true
             };
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+            // The applicant never chooses a password — the Admin sets the real one when
+            // approving, so this random value (unknown to anyone) is just to satisfy
+            // Identity's CreateAsync requirement and keep the account unusable until then.
+            var result = await _userManager.CreateAsync(user, GenerateRandomPassword());
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)
@@ -127,6 +152,29 @@ namespace EduLearn.Controllers
             }
 
             return RedirectToAction("Confirmation");
+        }
+
+        private static string GenerateRandomPassword()
+        {
+            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lower = "abcdefghijkmnpqrstuvwxyz";
+            const string digits = "23456789";
+            const string special = "!@#$%";
+            var random = new Random();
+
+            var chars = new List<char>
+            {
+                upper[random.Next(upper.Length)],
+                lower[random.Next(lower.Length)],
+                digits[random.Next(digits.Length)],
+                special[random.Next(special.Length)]
+            };
+
+            const string all = upper + lower + digits + special;
+            for (int i = 0; i < 16; i++)
+                chars.Add(all[random.Next(all.Length)]);
+
+            return new string(chars.OrderBy(_ => random.Next()).ToArray());
         }
 
         public IActionResult Confirmation()

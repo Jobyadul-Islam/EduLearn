@@ -17,5 +17,6 @@ namespace EduLearn.Models
         public string? Skills { get; set; }
         public int? YearsOfExperience { get; set; }
         public string? Bio { get; set; }
+        public string? ResumePath { get; set; }
     }
 }

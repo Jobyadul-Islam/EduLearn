@@ -10,8 +10,9 @@
 
     <div class="card form-card">
         <div asp-validation-summary="All" class="text-danger mb-2"></div>
-        <form asp-action="Form" method="post">
+        <form asp-action="Form" method="post" enctype="multipart/form-data">
             <h5 class="mb-3">Account Details</h5>
+            <p class="text-muted-2 small mb-3">No password needed here — if approved, the Admin will email you your login details directly.</p>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Full Name</label>
@@ -20,14 +21,6 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email</label>
                     <input asp-for="Email" class="form-control" />
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Password</label>
-                    <input asp-for="Password" type="password" class="form-control" />
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Confirm Password</label>
-                    <input asp-for="ConfirmPassword" type="password" class="form-control" />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Phone Number</label>
@@ -54,9 +47,13 @@
                     <label class="form-label">Years of Experience</label>
                     <input asp-for="YearsOfExperience" type="number" class="form-control" min="0" max="60" />
                 </div>
-                <div class="col-12 mb-4">
+                <div class="col-12 mb-3">
                     <label class="form-label">Short Bio</label>
                     <textarea asp-for="Bio" class="form-control" rows="4" placeholder="Tell us about your teaching background and why you want to teach on EduLearn."></textarea>
+                </div>
+                <div class="col-12 mb-4">
+                    <label class="form-label">Attach Your CV</label>
+                    <input type="file" name="Resume" class="form-control" accept=".pdf,.doc,.docx" required />
                 </div>
             </div>
 
