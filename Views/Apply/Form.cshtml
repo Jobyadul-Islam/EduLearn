@@ -45,7 +45,8 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label asp-for="YearsOfExperience" class="form-label">Years of Experience</label>
-                    <input asp-for="YearsOfExperience" type="number" class="form-control" min="0" max="60" />
+                    <input asp-for="YearsOfExperience" type="number" class="form-control" min="0" max="60" placeholder="e.g. 3" />
+                    <span asp-validation-for="YearsOfExperience" class="text-danger"></span>
                 </div>
                 <div class="col-12 mb-3">
                     <label asp-for="Bio" class="form-label">Short Bio</label>

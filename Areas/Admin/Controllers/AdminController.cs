@@ -31,13 +31,15 @@ namespace EduLearn.Areas.Admin.Controllers
 
         public async Task<IActionResult> Index()
         {
-            ViewBag.TotalUsers = _context.Users.Count();
+            // Rejected instructor applicants are excluded everywhere here, matching the Manage
+            // Users list — a rejected account isn't really part of the platform's population.
+            ViewBag.TotalUsers = _context.Users.Count(u => !u.IsRejected);
             ViewBag.TotalCourses = _context.Courses.Count();
             ViewBag.TotalEnrollments = _context.Enrollments.Count();
             ViewBag.PendingCoursesCount = _context.Courses.Count(c => c.Status == CourseStatus.Pending);
 
-            ViewBag.TotalStudents = (await _userManager.GetUsersInRoleAsync("Student")).Count;
-            ViewBag.TotalInstructors = (await _userManager.GetUsersInRoleAsync("Instructor")).Count;
+            ViewBag.TotalStudents = (await _userManager.GetUsersInRoleAsync("Student")).Count(u => !u.IsRejected);
+            ViewBag.TotalInstructors = (await _userManager.GetUsersInRoleAsync("Instructor")).Count(u => !u.IsRejected);
 
             var sixMonthsAgo = new System.DateTime(System.DateTime.Now.Year, System.DateTime.Now.Month, 1).AddMonths(-5);
             var registrationsByMonth = _context.Users
@@ -217,7 +219,9 @@ namespace EduLearn.Areas.Admin.Controllers
 
         public async Task<IActionResult> Users(string? search, string? role, string? status)
         {
-            var users = _context.Users.OrderBy(u => u.FullName).ToList();
+            // Rejected applications are done — once handled, they drop off the working list
+            // instead of sitting alongside accounts that still need a decision.
+            var users = _context.Users.Where(u => !u.IsRejected).OrderBy(u => u.FullName).ToList();
             var rows = new List<UserListItemViewModel>();
 
             foreach (var user in users)
@@ -230,6 +234,7 @@ namespace EduLearn.Areas.Admin.Controllers
                     Email = user.Email,
                     Role = roles.FirstOrDefault() ?? "(none)",
                     IsApproved = user.IsApproved,
+                    IsRejected = user.IsRejected,
                     IsActive = user.IsActive
                 });
             }
@@ -261,7 +266,7 @@ namespace EduLearn.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Approve(string id, string password)
+        public async Task<IActionResult> Approve(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
@@ -270,43 +275,40 @@ namespace EduLearn.Areas.Admin.Controllers
                 return RedirectToAction("Users");
             }
 
-            if (string.IsNullOrWhiteSpace(password))
-            {
-                TempData["EmailResult"] = "Enter a login password to approve this instructor.";
-                return RedirectToAction("Users");
-            }
-
-            // The admin's chosen password becomes the instructor's real first-time login,
-            // replacing whatever they set on the application form.
-            await _userManager.RemovePasswordAsync(user);
-            var addResult = await _userManager.AddPasswordAsync(user, password);
-            if (!addResult.Succeeded)
-            {
-                TempData["EmailResult"] = string.Join(" ", addResult.Errors.Select(e => e.Description));
-                return RedirectToAction("Users");
-            }
-
             user.IsApproved = true;
+            user.IsRejected = false;
             await _userManager.UpdateAsync(user);
+
+            // The account already has an unknown, randomly-generated password from when the
+            // application was submitted (see ApplyController.GenerateRandomPassword) — nobody
+            // has ever known it, including the applicant. Rather than the admin choosing a real
+            // password and emailing it in plain text, we hand the instructor a one-time,
+            // time-limited link to the same password-reset flow "Forgot your password?" uses, so
+            // they set their own password themselves and it's never visible to anyone else.
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var setPasswordLink = Url.Page(
+                "/Account/ResetPassword",
+                pageHandler: null,
+                values: new { area = "Identity", email = user.Email, code = token },
+                protocol: Request.Scheme);
 
             var body = $@"
                 <p>Hi {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
-                <p>Your EduLearn instructor application has been approved! Use the credentials below to log in:</p>
-                <p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(user.Email)}<br/>
-                <strong>Password:</strong> {System.Net.WebUtility.HtmlEncode(password)}</p>
-                <p>You can change your password any time using ""Forgot your password?"" on the login page.</p>
+                <p>Your EduLearn instructor application has been approved!</p>
+                <p><a href=""{setPasswordLink}"">Click here to set your password and log in</a></p>
+                <p>This link is single-use and expires for your security. If it stops working, use ""Forgot your password?"" on the login page instead.</p>
                 <p>— EduLearn</p>";
 
             var sent = await _emailService.SendEmailAsync(user.Email, "Your EduLearn Instructor Account is Approved", body);
 
             await _notificationService.NotifyAsync(
                 user.Id,
-                "Your instructor application has been approved! Check your email for login details.",
+                "Your instructor application has been approved! Check your email to set your password.",
                 "/Instructor");
 
             TempData["EmailResult"] = sent
-                ? $"Instructor approved and login email sent to {user.Email}."
-                : "Instructor approved, but the login email failed to send. Check the email configuration.";
+                ? $"Instructor approved and a password-setup email sent to {user.Email}."
+                : "Instructor approved, but the email failed to send. Check the email configuration.";
 
             return RedirectToAction("Users");
         }
@@ -315,12 +317,64 @@ namespace EduLearn.Areas.Admin.Controllers
         public async Task<IActionResult> Reject(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
-            if (user != null)
+            if (user == null)
             {
-                user.IsApproved = false;
-                user.IsActive = false;
-                await _userManager.UpdateAsync(user);
+                TempData["EmailResult"] = "User not found.";
+                return RedirectToAction("Users");
             }
+
+            // Flip these first as a safety net — if account deletion below fails for any
+            // reason, the account still correctly disappears from the Manage Users list and
+            // stays locked out, exactly like before this account-deletion behavior existed.
+            user.IsApproved = false;
+            user.IsRejected = true;
+            user.IsActive = false;
+            await _userManager.UpdateAsync(user);
+
+            // Keep a permanent record of who applied and was turned down — this table has no
+            // effect on anything live (nothing else in the app ever queries it) and isn't
+            // tied back to the account by a foreign key, since that account is about to be
+            // deleted entirely. The resume file itself is deliberately left on disk (not
+            // deleted) so ResumePath here still points to something real if it's ever needed.
+            _context.RejectedApplicationArchives.Add(new RejectedApplicationArchive
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Qualification = user.Qualification,
+                Institution = user.Institution,
+                Skills = user.Skills,
+                YearsOfExperience = user.YearsOfExperience,
+                Bio = user.Bio,
+                ResumePath = user.ResumePath,
+                AppliedAt = user.CreatedAt,
+                RejectedAt = System.DateTime.Now
+            });
+            await _context.SaveChangesAsync();
+
+            // No in-app notification here on purpose — the account is about to be deleted (and
+            // was already deactivated above), so the applicant could never log in to see one.
+            // Email is the only channel that actually reaches them.
+            var body = $@"
+                <p>Hi {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
+                <p>Thank you for your interest in teaching on EduLearn and for taking the time to apply.</p>
+                <p>After reviewing your application, we won't be moving forward with it at this time.</p>
+                <p>We appreciate your interest and wish you the best.</p>
+                <p>— EduLearn</p>";
+
+            var sent = await _emailService.SendEmailAsync(user.Email, "Update on Your EduLearn Instructor Application", body);
+            var userEmail = user.Email;
+
+            // Deleting the account (rather than just leaving it deactivated) frees the email
+            // address up immediately, so the same person can apply again later if they choose.
+            var deleteResult = await _userManager.DeleteAsync(user);
+
+            TempData["EmailResult"] = deleteResult.Succeeded
+                ? (sent
+                    ? $"Application rejected, account removed, and an email sent to {userEmail}."
+                    : $"Application rejected and the account removed, but the email to {userEmail} failed to send.")
+                : "Application rejected, but the account couldn't be fully removed: " + string.Join(" ", deleteResult.Errors.Select(e => e.Description));
+
             return RedirectToAction("Users");
         }
 

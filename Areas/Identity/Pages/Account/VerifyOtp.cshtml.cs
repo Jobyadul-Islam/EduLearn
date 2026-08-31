@@ -14,12 +14,14 @@ namespace EduLearn.Areas.Identity.Pages.Account
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailService _emailService;
+        private readonly IFileUploadService _fileUploadService; // NEW
 
-        public VerifyOtpModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IEmailService emailService)
+        public VerifyOtpModel(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IEmailService emailService, IFileUploadService fileUploadService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailService = emailService;
+            _fileUploadService = fileUploadService; // NEW
         }
 
         [BindProperty]
@@ -64,17 +66,23 @@ namespace EduLearn.Areas.Identity.Pages.Account
                 return Page();
             }
 
+            // OTP verified — only now does the picture ever touch disk.
+            var pictureBytes = Convert.FromBase64String(pending.ProfilePictureBase64);
+            var profilePicturePath = await _fileUploadService.SaveImageAsync(pictureBytes, pending.ProfilePictureExtension, "profiles");
+
             var user = new ApplicationUser
             {
                 UserName = pending.Email,
                 Email = pending.Email,
                 FullName = pending.FullName,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                ProfilePicture = profilePicturePath // NEW
             };
 
             var result = await _userManager.CreateAsync(user, pending.Password);
             if (!result.Succeeded)
             {
+                _fileUploadService.DeleteImage(profilePicturePath); // NEW — don't leave an orphaned file behind
                 HttpContext.Session.Remove(RegisterModel.SessionKey);
                 foreach (var error in result.Errors)
                     ModelState.AddModelError(string.Empty, error.Description);

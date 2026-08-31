@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,8 @@ namespace EduLearn.Areas.Identity.Pages.Account
 
         [BindProperty]
         public InputModel Input { get; set; }
+
+        public bool LinkExpired { get; set; }
 
         public class InputModel
         {
@@ -67,8 +70,19 @@ namespace EduLearn.Areas.Identity.Pages.Account
                 return RedirectToPage("./ResetPasswordConfirmation");
             }
 
-            foreach (var error in result.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
+            // Identity's own "Invalid token." message doesn't explain why (the link was
+            // already used, or expired, or the account was recreated since it was sent) or
+            // what to do about it — replace it with an actionable message instead.
+            if (result.Errors.Any(e => e.Code == "InvalidToken"))
+            {
+                ModelState.AddModelError(string.Empty, "This reset link is invalid or has expired. Please request a new one.");
+                LinkExpired = true;
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError(string.Empty, error.Description);
+            }
 
             return Page();
         }

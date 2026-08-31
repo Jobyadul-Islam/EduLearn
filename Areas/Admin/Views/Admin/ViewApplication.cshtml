@@ -15,7 +15,6 @@
     {
         <div class="d-flex gap-2">
             <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-flex gap-1">
-                <input type="password" name="password" class="form-control form-control-sm" placeholder="Set login password" required minlength="6" style="max-width:180px;" />
                 <button type="submit" class="btn btn-success text-nowrap">Approve & Email</button>
             </form>
             <form asp-action="Reject" asp-route-id="@Model.Id" method="post">

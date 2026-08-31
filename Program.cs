@@ -2,6 +2,7 @@ using EduLearn.Data;
 using EduLearn.Models;                              // NEW
 using EduLearn.Services;
 using Microsoft.AspNetCore.Identity;                // NEW
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -32,6 +33,7 @@ builder.Services.AddScoped<IChatService, GeminiChatService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<IDeadlineReminderService, DeadlineReminderService>();
 builder.Services.AddScoped<IBkashPaymentService, BkashPaymentService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>(); // NEW
 builder.Services.AddHostedService<DeadlineReminderBackgroundService>();
 
 builder.Services.AddDistributedMemoryCache();
@@ -50,6 +52,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseHttpsRedirection();
+
+// .avif isn't in ASP.NET Core's built-in static-file MIME map, so without this it gets
+// served as application/octet-stream and browsers won't render it as an <img> — needed
+// for wwwroot/image/user-circles-set_78370-4704.avif (the default profile avatar). Placed
+// first, ahead of routing/MapStaticAssets, so it always gets the first look at file requests.
+var staticFileContentTypeProvider = new FileExtensionContentTypeProvider();
+staticFileContentTypeProvider.Mappings[".avif"] = "image/avif";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = staticFileContentTypeProvider });
+
 app.UseRouting();
 app.UseSession();
 

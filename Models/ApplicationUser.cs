@@ -9,6 +9,10 @@ namespace EduLearn.Models
         public string? ProfilePicture { get; set; }
         public bool IsApproved { get; set; } = true;
         public bool IsActive { get; set; } = true;
+
+        // Distinguishes "instructor application rejected" from "never reviewed yet" — both
+        // used to leave IsApproved false with no way to tell them apart in the Admin UI.
+        public bool IsRejected { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         // Instructor application details (populated only for instructor applicants)

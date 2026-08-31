@@ -132,6 +132,15 @@ a {
   font-weight: 700;
 }
 
+.user-avatar-img {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+}
+
 main.page-main {
   min-height: calc(100vh - 220px);
   padding-bottom: 3rem;
@@ -567,6 +576,7 @@ main.page-main {
   display: block;
   padding: .75rem 1rem;
   border-bottom: 1px solid var(--color-border);
+  border-left: 3px solid transparent;
   white-space: normal;
   font-size: .88rem;
 }
@@ -575,8 +585,23 @@ main.page-main {
   border-bottom: none;
 }
 
+.notify-item .notify-message {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* Unread notifications get the same "stands out until you open it" treatment
+   Gmail uses: bold text, a tinted background, and a colored left edge. Once
+   marked read (IsRead becomes true server-side), none of this applies anymore
+   and the item falls back to the plain styling above. */
 .notify-item.unread {
   background: var(--color-primary-light);
+  border-left-color: var(--color-primary);
+}
+
+.notify-item.unread .notify-message {
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .notify-empty {

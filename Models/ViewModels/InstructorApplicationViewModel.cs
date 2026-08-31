@@ -22,8 +22,13 @@ namespace EduLearn.Models.ViewModels
         [Required]
         public string Skills { get; set; }
 
-        [Required, Range(0, 60)]
-        public int YearsOfExperience { get; set; }
+        // Nullable on purpose: [Required] on a non-nullable int is a no-op (0 is never
+        // "null"), so a genuine 0-years answer and an accidentally-untouched field were
+        // indistinguishable and both silently passed validation. Making this int? means
+        // the field starts empty rather than pre-filled with a misleading "0", and
+        // [Required] now actually forces the applicant to type something before submitting.
+        [Required(ErrorMessage = "Please enter your years of experience (0 if you're just starting out)."), Range(0, 60)]
+        public int? YearsOfExperience { get; set; }
 
         [Required]
         public string Bio { get; set; }
