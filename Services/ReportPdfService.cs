@@ -95,6 +95,49 @@ namespace EduLearn.Services
             });
         }
 
+        public static byte[] GenerateCourseActivityReport(
+            string courseTitle,
+            string periodType,
+            List<(DateTime PeriodStart, int NewEnrollments, int LessonsCompleted, int QuizAttempts, double? AverageQuizScorePercent, int AssignmentsSubmitted)> periods)
+        {
+            var periodLabel = periodType == "weekly" ? "Weekly" : "Monthly";
+
+            return BuildDocument($"{periodLabel} Course Activity Report — {courseTitle}", column =>
+            {
+                column.Item().Text($"{periodLabel} Breakdown — Last 6 {(periodType == "weekly" ? "Weeks" : "Months")}").FontSize(13).Bold();
+
+                column.Item().PaddingTop(5).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(1.5f);
+                        columns.RelativeColumn();
+                        columns.RelativeColumn();
+                        columns.RelativeColumn();
+                        columns.RelativeColumn();
+                        columns.RelativeColumn();
+                    });
+
+                    AddHeaderRow(table, "Period", "New Enrollments", "Lessons Completed", "Quiz Attempts", "Avg Quiz Score", "Assignments Submitted");
+
+                    foreach (var p in periods)
+                    {
+                        var periodText = periodType == "weekly"
+                            ? $"Week of {p.PeriodStart:MMM d, yyyy}"
+                            : p.PeriodStart.ToString("MMM yyyy");
+
+                        AddDataRow(table,
+                            periodText,
+                            p.NewEnrollments.ToString(),
+                            p.LessonsCompleted.ToString(),
+                            p.QuizAttempts.ToString(),
+                            p.AverageQuizScorePercent.HasValue ? $"{p.AverageQuizScorePercent:0.0}%" : "—",
+                            p.AssignmentsSubmitted.ToString());
+                    }
+                });
+            });
+        }
+
         private static byte[] BuildDocument(string title, Action<ColumnDescriptor> content)
         {
             var document = Document.Create(container =>

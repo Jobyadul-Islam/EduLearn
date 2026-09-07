@@ -119,7 +119,7 @@ namespace EduLearn.Controllers
                 var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == id && e.StudentId == userId);
 
                 ViewBag.IsEnrolled = enrollment != null;
-                ViewBag.HasFullAccess = course.Price == 0 || (enrollment?.Status == EnrollmentStatus.Active);
+                ViewBag.HasFullAccess = course.Price == 0 || (enrollment?.Status == EnrollmentStatus.Active) || HasPrivilegedPreviewAccess();
             }
             else
             {
@@ -150,6 +150,13 @@ namespace EduLearn.Controllers
                 .Select(l => l.Id)
                 .ToList();
         }
+
+        // Admins and Instructors can preview any course's full content — lessons,
+        // quizzes, assignments — without enrolling. They never appear as a student in
+        // course numbers (enrollment counts, quiz results, etc.), this only widens what
+        // they're allowed to look at.
+        private bool HasPrivilegedPreviewAccess() =>
+            User.Identity!.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("Instructor"));
 
         [Authorize(Roles = "Student")]
         [HttpPost]
@@ -343,13 +350,14 @@ namespace EduLearn.Controllers
             var userId = _userManager.GetUserId(User);
 
             var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            bool privilegedPreview = HasPrivilegedPreviewAccess();
 
-            if (enrollment == null)
+            if (enrollment == null && !privilegedPreview)
             {
                 return Forbid();
             }
 
-            bool hasFullAccess = lesson.Module.Course.Price == 0 || enrollment.Status == EnrollmentStatus.Active;
+            bool hasFullAccess = privilegedPreview || lesson.Module.Course.Price == 0 || enrollment?.Status == EnrollmentStatus.Active;
             bool isFreePreview = GetFreePreviewLessonIds(courseId).Contains(id);
 
             if (!hasFullAccess && !isFreePreview)

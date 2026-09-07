@@ -22,7 +22,7 @@ namespace EduLearn.Data
         public DbSet<AssignmentSubmission> AssignmentSubmissions { get; set; }
         public DbSet<LessonProgress> LessonProgresses { get; set; }
         public DbSet<Notification> Notifications { get; set; }
-        public DbSet<InstructorApplicationPin> InstructorApplicationPins { get; set; }
+        public DbSet<InstructorAccessRequest> InstructorAccessRequests { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<AssignmentReminder> AssignmentReminders { get; set; }
         public DbSet<Review> Reviews { get; set; }
@@ -139,11 +139,19 @@ namespace EduLearn.Data
                 .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<InstructorApplicationPin>()
-                .HasOne(p => p.GeneratedByAdmin)
+            builder.Entity<InstructorAccessRequest>()
+                .HasOne(r => r.DecidedByAdmin)
                 .WithMany()
-                .HasForeignKey(p => p.GeneratedByAdminId)
+                .HasForeignKey(r => r.DecidedByAdminId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // AccessToken is null until an Admin approves the request — SQL Server's default
+            // unique index only tolerates one NULL, so this must be filtered or a second
+            // still-Pending request would fail to insert.
+            builder.Entity<InstructorAccessRequest>()
+                .HasIndex(r => r.AccessToken)
+                .IsUnique()
+                .HasFilter("[AccessToken] IS NOT NULL");
 
             builder.Entity<Payment>()
                 .HasOne(p => p.Course)

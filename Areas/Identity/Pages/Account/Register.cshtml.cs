@@ -72,7 +72,7 @@ namespace EduLearn.Areas.Identity.Pages.Account
         public void OnGet() { }
 
         // Public self-registration only ever creates Student accounts.
-        // Instructors go through the PIN-gated application flow at /Apply instead.
+        // Instructors go through the access-request + OTP flow at /Apply instead.
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();

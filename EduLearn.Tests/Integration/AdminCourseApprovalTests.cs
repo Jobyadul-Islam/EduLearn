@@ -42,11 +42,12 @@ namespace EduLearn.Tests.Integration
             var mockNotificationService = new Mock<INotificationService>();
             var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object);
 
-            await admin.ApproveCourse(course.Id);
+            await admin.ApproveCourse(course.Id, isFree: false, price: 500);
 
             var updated = context.Courses.Single(c => c.Id == course.Id);
             Assert.Equal(CourseStatus.Approved, updated.Status);
             Assert.Null(updated.RejectionReason);
+            Assert.Equal(500, updated.Price);
 
             mockNotificationService.Verify(m => m.NotifyAsync(
                 instructor.Id,

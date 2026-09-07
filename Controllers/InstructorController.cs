@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using EduLearn.Data;
 using EduLearn.Models;
 using EduLearn.Models.ViewModels;
+using EduLearn.Services;
 using System;
 using System.Linq;
 
@@ -69,6 +70,9 @@ namespace EduLearn.Controllers
             course.CourseCode = GenerateCourseCode();
             course.Status = CourseStatus.Pending;
             course.RejectionReason = null;
+            // Price is an Admin-only decision, set when the course is approved — never
+            // trust whatever an instructor's request happens to post for it.
+            course.Price = 0;
 
             if (Thumbnail != null && Thumbnail.Length > 0)
             {
@@ -135,7 +139,8 @@ namespace EduLearn.Controllers
 
             existing.Title = course.Title;
             existing.Description = course.Description;
-            existing.Price = course.Price;
+            // Price is deliberately not touched here — only an Admin can change it
+            // (see AdminController.ApproveCourse / EditCoursePrice).
             existing.CategoryId = course.CategoryId;
             existing.Status = CourseStatus.Pending;
             existing.RejectionReason = null;
@@ -294,6 +299,50 @@ namespace EduLearn.Controllers
             ViewBag.SelectedCourseId = courseId;
 
             return View(results);
+        }
+
+        // ---------------- Students & Reports ----------------
+
+        public IActionResult Students(int courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+            var course = _context.Courses.FirstOrDefault(c => c.Id == courseId && c.InstructorId == userId);
+            if (course == null) return NotFound();
+
+            ViewBag.Course = course;
+            return View(CourseRosterService.GetRoster(_context, courseId));
+        }
+
+        public IActionResult CourseReport(int courseId, string period = "monthly")
+        {
+            var userId = _userManager.GetUserId(User);
+            var course = _context.Courses.FirstOrDefault(c => c.Id == courseId && c.InstructorId == userId);
+            if (course == null) return NotFound();
+
+            var normalizedPeriod = period == "weekly" ? "weekly" : "monthly";
+            var data = normalizedPeriod == "weekly"
+                ? CourseReportService.GetWeeklyReport(_context, courseId)
+                : CourseReportService.GetMonthlyReport(_context, courseId);
+
+            ViewBag.Course = course;
+            ViewBag.Period = normalizedPeriod;
+            return View(data);
+        }
+
+        public IActionResult ExportCourseReportPdf(int courseId, string period = "monthly")
+        {
+            var userId = _userManager.GetUserId(User);
+            var course = _context.Courses.FirstOrDefault(c => c.Id == courseId && c.InstructorId == userId);
+            if (course == null) return NotFound();
+
+            var normalizedPeriod = period == "weekly" ? "weekly" : "monthly";
+            var data = normalizedPeriod == "weekly"
+                ? CourseReportService.GetWeeklyReport(_context, courseId)
+                : CourseReportService.GetMonthlyReport(_context, courseId);
+
+            var pdf = ReportPdfService.GenerateCourseActivityReport(course.Title, normalizedPeriod, data);
+            var fileName = $"{course.Title}-{normalizedPeriod}-Report-{DateTime.Now:yyyyMMdd}.pdf".Replace(" ", "-");
+            return File(pdf, "application/pdf", fileName);
         }
 
         private async Task<bool> IsCurrentInstructorApproved()

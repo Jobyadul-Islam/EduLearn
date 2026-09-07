@@ -1,0 +1,134 @@
+@model EduLearn.Models.Course
+
+@{
+    ViewData["Title"] = $"Overview — {Model.Title}";
+    var roster = (List<EduLearn.Models.ViewModels.StudentRosterRowViewModel>)ViewBag.Roster;
+    var timeline = (List<EduLearn.Models.ViewModels.CourseActivityEventViewModel>)ViewBag.Timeline;
+}
+
+<a asp-action="AllCourses" class="text-decoration-none small text-muted-2">← Back to Manage Courses</a>
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4 mt-2">
+    <div>
+        <h2 class="section-title mb-1">@Model.Title</h2>
+        <p class="text-muted-2 mb-0">
+            <span class="code-badge">@Model.CourseCode</span>
+            @Model.Category?.Name ·
+            @(Model.Price == 0 ? "Free" : $"TK {Model.Price}")
+        </p>
+    </div>
+    <a asp-action="CourseReport" asp-route-courseId="@Model.Id" class="btn btn-outline-primary">View Weekly/Monthly Report</a>
+</div>
+
+<div class="card form-card mb-4">
+    <h5 class="mb-3">Instructor</h5>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Name</dt>
+        <dd class="col-sm-9">@Model.Instructor?.FullName</dd>
+
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@Model.Instructor?.Email</dd>
+
+        <dt class="col-sm-3">Phone Number</dt>
+        <dd class="col-sm-9">@(Model.Instructor?.PhoneNumber ?? "—")</dd>
+
+        <dt class="col-sm-3">Qualification</dt>
+        <dd class="col-sm-9">@(Model.Instructor?.Qualification ?? "—")</dd>
+
+        <dt class="col-sm-3">Institution</dt>
+        <dd class="col-sm-9">@(Model.Instructor?.Institution ?? "—")</dd>
+
+        <dt class="col-sm-3">Skills / Expertise</dt>
+        <dd class="col-sm-9">@(Model.Instructor?.Skills ?? "—")</dd>
+
+        <dt class="col-sm-3">Years of Experience</dt>
+        <dd class="col-sm-9">@(Model.Instructor?.YearsOfExperience?.ToString() ?? "—")</dd>
+
+        <dt class="col-sm-3">Bio</dt>
+        <dd class="col-sm-9">@(Model.Instructor?.Bio ?? "—")</dd>
+    </dl>
+</div>
+
+<div class="card form-card mb-4">
+    <h5 class="mb-3">Activity Timeline</h5>
+    @if (timeline.Count >= 100)
+    {
+        <p class="small text-muted-2">Showing the most recent 100 events.</p>
+    }
+    @if (!timeline.Any())
+    {
+        <p class="text-muted-2 mb-0">No activity yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Event</th>
+                        <th>When</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in timeline)
+                    {
+                        <tr>
+                            <td>@e.StudentName</td>
+                            <td>@e.Description</td>
+                            <td class="text-muted-2 small">@e.OccurredAt.ToString("MMM d, yyyy h:mm tt")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <h5 class="mb-3 px-3 pt-3">Students</h5>
+    @if (!roster.Any())
+    {
+        <p class="text-muted-2 px-3 pb-3 mb-0">No one has enrolled in this course yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Email</th>
+                        <th>Enrolled</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in roster)
+                    {
+                        <tr>
+                            <td>@s.StudentName</td>
+                            <td>@s.StudentEmail</td>
+                            <td class="text-muted-2 small">@s.EnrollDate.ToString("MMM d, yyyy")</td>
+                            <td>
+                                <span class="@(s.Status == EduLearn.Models.EnrollmentStatus.Active ? "status-pill approved" : "status-pill pending")">
+                                    @s.Status
+                                </span>
+                            </td>
+                            <td>@s.ProgressPercentage%</td>
+                            <td class="text-muted-2 small">
+                                @(s.LastActivityType ?? "—")
+                                @if (s.LastActivityAt.HasValue)
+                                {
+                                    <text> — @s.LastActivityAt.Value.ToString("MMM d, yyyy")</text>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

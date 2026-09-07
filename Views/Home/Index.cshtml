@@ -77,13 +77,13 @@
         @foreach (var cat in categories)
         {
             <div class="col-6 col-md-4 col-lg-2 mb-3">
-                <div class="card category-card h-100">
+                <a asp-controller="Course" asp-action="Index" asp-route-categoryId="@cat.Id" class="card category-card h-100 text-decoration-none text-reset">
                     <div class="category-icon accent-@(catIndex % 5)">
                         <svg class="icon" viewBox="0 0 24 24">@Html.Raw(categoryIcons[catIndex % categoryIcons.Length])</svg>
                     </div>
                     <div class="fw-semibold">@cat.Name</div>
                     <div class="category-count">@cat.CourseCount course@(cat.CourseCount == 1 ? "" : "s")</div>
-                </div>
+                </a>
             </div>
             catIndex++;
         }

@@ -1,0 +1,82 @@
+@model List<(DateTime PeriodStart, int NewEnrollments, int LessonsCompleted, int QuizAttempts, double? AverageQuizScorePercent, int AssignmentsSubmitted)>
+
+@{
+    var course = (EduLearn.Models.Course)ViewBag.Course;
+    string period = ViewBag.Period;
+    ViewData["Title"] = $"Report — {course.Title}";
+    var labels = Model.Select(p => period == "weekly" ? $"Week of {p.PeriodStart:MMM d}" : p.PeriodStart.ToString("MMM yyyy"));
+    var lessonValues = Model.Select(p => p.LessonsCompleted);
+    var quizValues = Model.Select(p => p.QuizAttempts);
+    var assignmentValues = Model.Select(p => p.AssignmentsSubmitted);
+}
+
+<a asp-action="CourseOverview" asp-route-id="@course.Id" class="text-decoration-none small text-muted-2">← Back to Course Overview</a>
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4 mt-2">
+    <div>
+        <h2 class="section-title mb-1">Report — @course.Title</h2>
+        <p class="text-muted-2 mb-0">Enrollment and activity over the last 6 @(period == "weekly" ? "weeks" : "months").</p>
+    </div>
+    <div class="d-flex gap-2">
+        <div class="btn-group">
+            <a asp-action="CourseReport" asp-route-courseId="@course.Id" asp-route-period="weekly" class="btn btn-sm @(period == "weekly" ? "btn-primary" : "btn-outline-primary")">Weekly</a>
+            <a asp-action="CourseReport" asp-route-courseId="@course.Id" asp-route-period="monthly" class="btn btn-sm @(period == "monthly" ? "btn-primary" : "btn-outline-primary")">Monthly</a>
+        </div>
+        <a asp-action="ExportCourseReportPdf" asp-route-courseId="@course.Id" asp-route-period="@period" class="btn btn-outline-secondary">Export PDF</a>
+    </div>
+</div>
+
+<div class="card form-card mb-4">
+    <h5 class="mb-3">Activity Breakdown</h5>
+    <canvas id="reportChart" height="90"></canvas>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>New Enrollments</th>
+                    <th>Lessons Completed</th>
+                    <th>Quiz Attempts</th>
+                    <th>Avg Quiz Score</th>
+                    <th>Assignments Submitted</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td>@(period == "weekly" ? $"Week of {p.PeriodStart:MMM d, yyyy}" : p.PeriodStart.ToString("MMM yyyy"))</td>
+                        <td>@p.NewEnrollments</td>
+                        <td>@p.LessonsCompleted</td>
+                        <td>@p.QuizAttempts</td>
+                        <td>@(p.AverageQuizScorePercent.HasValue ? $"{p.AverageQuizScorePercent.Value:0.0}%" : "—")</td>
+                        <td>@p.AssignmentsSubmitted</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="~/lib/chartjs/chart.umd.min.js"></script>
+<script>
+    const ctx = document.getElementById('reportChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(labels)),
+            datasets: [
+                { label: 'Lessons Completed', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(lessonValues)), backgroundColor: '#1D4ED8' },
+                { label: 'Quiz Attempts', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(quizValues)), backgroundColor: '#EC4899' },
+                { label: 'Assignments Submitted', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(assignmentValues)), backgroundColor: '#FFC93C' }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>

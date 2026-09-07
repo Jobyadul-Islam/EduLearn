@@ -4,6 +4,7 @@ using EduLearn.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EduLearn.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260902042101_ReplaceInstructorPinWithAccessRequest")]
+    partial class ReplaceInstructorPinWithAccessRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,7 +153,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("LessonId");
 
-                    b.ToTable("Assignments", (string)null);
+                    b.ToTable("Assignments");
                 });
 
             modelBuilder.Entity("EduLearn.Models.AssignmentReminder", b =>
@@ -177,7 +180,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("AssignmentReminders", (string)null);
+                    b.ToTable("AssignmentReminders");
                 });
 
             modelBuilder.Entity("EduLearn.Models.AssignmentSubmission", b =>
@@ -208,7 +211,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("AssignmentSubmissions", (string)null);
+                    b.ToTable("AssignmentSubmissions");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Category", b =>
@@ -229,7 +232,7 @@ namespace EduLearn.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Course", b =>
@@ -276,7 +279,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("InstructorId");
 
-                    b.ToTable("Courses", (string)null);
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Enrollment", b =>
@@ -309,7 +312,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Enrollments", (string)null);
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("EduLearn.Models.InstructorAccessRequest", b =>
@@ -362,7 +365,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("DecidedByAdminId");
 
-                    b.ToTable("InstructorAccessRequests", (string)null);
+                    b.ToTable("InstructorAccessRequests");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Lesson", b =>
@@ -394,7 +397,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("ModuleId");
 
-                    b.ToTable("Lessons", (string)null);
+                    b.ToTable("Lessons");
                 });
 
             modelBuilder.Entity("EduLearn.Models.LessonProgress", b =>
@@ -424,7 +427,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("LessonProgresses", (string)null);
+                    b.ToTable("LessonProgresses");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Module", b =>
@@ -446,7 +449,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Modules", (string)null);
+                    b.ToTable("Modules");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Notification", b =>
@@ -478,7 +481,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Payment", b =>
@@ -515,7 +518,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Quiz", b =>
@@ -543,7 +546,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("LessonId");
 
-                    b.ToTable("Quizzes", (string)null);
+                    b.ToTable("Quizzes");
                 });
 
             modelBuilder.Entity("EduLearn.Models.QuizOption", b =>
@@ -568,7 +571,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("QuizQuestionId");
 
-                    b.ToTable("QuizOptions", (string)null);
+                    b.ToTable("QuizOptions");
                 });
 
             modelBuilder.Entity("EduLearn.Models.QuizQuestion", b =>
@@ -590,7 +593,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("QuizQuestions", (string)null);
+                    b.ToTable("QuizQuestions");
                 });
 
             modelBuilder.Entity("EduLearn.Models.QuizResult", b =>
@@ -626,7 +629,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("QuizResults", (string)null);
+                    b.ToTable("QuizResults");
                 });
 
             modelBuilder.Entity("EduLearn.Models.RejectedApplicationArchive", b =>
@@ -674,7 +677,7 @@ namespace EduLearn.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RejectedApplicationArchives", (string)null);
+                    b.ToTable("RejectedApplicationArchives");
                 });
 
             modelBuilder.Entity("EduLearn.Models.Review", b =>
@@ -707,7 +710,7 @@ namespace EduLearn.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

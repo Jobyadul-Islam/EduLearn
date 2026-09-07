@@ -1,6 +1,7 @@
 using EduLearn.Data;
 using EduLearn.Models;                              // NEW
 using EduLearn.Services;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;                // NEW
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,23 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.AccessDeniedPath = "/Home/AccessDenied";
 });
+
+// Google is used ONLY to capture a verified email during the /Apply access-request flow
+// ("Continue with Google") — it's never wired up as a general site-wide login option, and
+// AddDefaultIdentity above already registers the external cookie scheme this lands in with
+// zero extra config. Registered only when real credentials exist (see
+// appsettings.Local.json); if blank, the scheme is never wired up at all, mirroring
+// SmtpEmailService.IsConfigured's gate-don't-crash pattern one level earlier.
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleClientId!;
+        options.ClientSecret = googleClientSecret!;
+    });
+}
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHttpClient();

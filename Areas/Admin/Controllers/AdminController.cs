@@ -80,6 +80,49 @@ namespace EduLearn.Areas.Admin.Controllers
             return View(courses);
         }
 
+        public IActionResult CourseOverview(int id)
+        {
+            var course = _context.Courses
+                .Include(c => c.Category)
+                .Include(c => c.Instructor)
+                .FirstOrDefault(c => c.Id == id);
+            if (course == null) return NotFound();
+
+            ViewBag.Roster = CourseRosterService.GetRoster(_context, id);
+            ViewBag.Timeline = CourseRosterService.GetActivityTimeline(_context, id);
+            return View(course);
+        }
+
+        public IActionResult CourseReport(int courseId, string period = "monthly")
+        {
+            var course = _context.Courses.Find(courseId);
+            if (course == null) return NotFound();
+
+            var normalizedPeriod = period == "weekly" ? "weekly" : "monthly";
+            var data = normalizedPeriod == "weekly"
+                ? CourseReportService.GetWeeklyReport(_context, courseId)
+                : CourseReportService.GetMonthlyReport(_context, courseId);
+
+            ViewBag.Course = course;
+            ViewBag.Period = normalizedPeriod;
+            return View(data);
+        }
+
+        public IActionResult ExportCourseReportPdf(int courseId, string period = "monthly")
+        {
+            var course = _context.Courses.Find(courseId);
+            if (course == null) return NotFound();
+
+            var normalizedPeriod = period == "weekly" ? "weekly" : "monthly";
+            var data = normalizedPeriod == "weekly"
+                ? CourseReportService.GetWeeklyReport(_context, courseId)
+                : CourseReportService.GetMonthlyReport(_context, courseId);
+
+            var pdf = ReportPdfService.GenerateCourseActivityReport(course.Title, normalizedPeriod, data);
+            var fileName = $"{course.Title}-{normalizedPeriod}-Report-{System.DateTime.Now:yyyyMMdd}.pdf".Replace(" ", "-");
+            return File(pdf, "application/pdf", fileName);
+        }
+
         public IActionResult AllEnrollments()
         {
             var enrollments = (from e in _context.Enrollments
@@ -178,11 +221,14 @@ namespace EduLearn.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ApproveCourse(int id)
+        public async Task<IActionResult> ApproveCourse(int id, bool isFree, decimal? price)
         {
             var course = _context.Courses.Find(id);
             if (course != null)
             {
+                // Instructors never set a price themselves (see InstructorController) — the
+                // Admin decides it here, at approval time, as either Free or a fixed amount.
+                course.Price = isFree ? 0 : Math.Max(0, price ?? 0);
                 course.Status = CourseStatus.Approved;
                 course.RejectionReason = null;
                 _context.SaveChanges();
@@ -193,6 +239,35 @@ namespace EduLearn.Areas.Admin.Controllers
                     $"/Instructor/CourseDetails/{course.Id}");
             }
             return RedirectToAction("PendingCourses");
+        }
+
+        // Admin can change a course's price at any time, not just at approval — the
+        // instructor-facing Edit Course form never exposes Price at all.
+        [HttpPost]
+        public IActionResult EditCoursePrice(int id, decimal price)
+        {
+            var course = _context.Courses.Find(id);
+            if (course != null)
+            {
+                course.Price = Math.Max(0, price);
+                _context.SaveChanges();
+            }
+            return RedirectToAction("AllCourses");
+        }
+
+        [HttpPost]
+        public IActionResult DeleteCourse(int id)
+        {
+            var course = _context.Courses.Find(id);
+            if (course != null)
+            {
+                // Cascades to the course's modules/lessons/assignments/quizzes,
+                // enrollments, payments, and reviews (see ApplicationDbContext) — this is
+                // a full, permanent removal, not a soft delete.
+                _context.Courses.Remove(course);
+                _context.SaveChanges();
+            }
+            return RedirectToAction("AllCourses");
         }
 
         [HttpPost]
@@ -404,40 +479,83 @@ namespace EduLearn.Areas.Admin.Controllers
             return View(user);
         }
 
-        public IActionResult InstructorPins()
+        public IActionResult AccessRequests()
         {
-            var pins = _context.InstructorApplicationPins
-                .OrderByDescending(p => p.CreatedAt)
-                .Take(20)
+            var requests = _context.InstructorAccessRequests
+                .OrderBy(r => r.Status == AccessRequestStatus.Pending ? 0 : 1)
+                .ThenByDescending(r => r.CreatedAt)
+                .Take(50)
                 .ToList();
 
-            return View(pins);
+            return View(requests);
         }
 
         [HttpPost]
-        public async Task<IActionResult> GeneratePin()
+        public async Task<IActionResult> ApproveAccessRequest(int id)
         {
-            var random = new System.Random();
-            string code;
-            do
+            var request = await _context.InstructorAccessRequests.FindAsync(id);
+            if (request == null || request.Status != AccessRequestStatus.Pending)
             {
-                code = random.Next(0, 1000000).ToString("D6");
+                TempData["EmailResult"] = "Request not found or already decided.";
+                return RedirectToAction("AccessRequests");
             }
-            while (_context.InstructorApplicationPins.Any(p => p.Code == code && !p.IsUsed));
 
-            var pin = new InstructorApplicationPin
-            {
-                Code = code,
-                IsUsed = false,
-                CreatedAt = System.DateTime.Now,
-                GeneratedByAdminId = _userManager.GetUserId(User)
-            };
-
-            _context.InstructorApplicationPins.Add(pin);
+            request.Status = AccessRequestStatus.Approved;
+            request.DecidedAt = System.DateTime.Now;
+            request.DecidedByAdminId = _userManager.GetUserId(User);
+            request.OtpCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+            request.OtpExpiresAt = System.DateTime.Now.AddHours(24);
+            request.AccessToken = System.Security.Cryptography.RandomNumberGenerator.GetHexString(32);
             await _context.SaveChangesAsync();
 
-            TempData["NewPinCode"] = code;
-            return RedirectToAction("InstructorPins");
+            var applyLink = Url.Action("VerifyAccessCode", "Apply", new { token = request.AccessToken }, Request.Scheme);
+            var body = $@"
+                <p>Hi,</p>
+                <p>Your request to apply as an instructor on EduLearn has been approved.</p>
+                <p><a href=""{applyLink}"">Click here to continue your application</a></p>
+                <p>You'll be asked for this verification code:</p>
+                <p style=""font-size:28px; font-weight:bold; letter-spacing:4px;"">{request.OtpCode}</p>
+                <p>This link and code expire in 24 hours.</p>
+                <p>— EduLearn</p>";
+
+            var sent = await _emailService.SendEmailAsync(request.Email, "You're invited to apply as an EduLearn instructor", body);
+
+            TempData["EmailResult"] = sent
+                ? $"Request approved and an invite emailed to {request.Email}."
+                : "Request approved, but the email failed to send. Check the email configuration.";
+
+            return RedirectToAction("AccessRequests");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DenyAccessRequest(int id)
+        {
+            var request = await _context.InstructorAccessRequests.FindAsync(id);
+            if (request == null || request.Status != AccessRequestStatus.Pending)
+            {
+                TempData["EmailResult"] = "Request not found or already decided.";
+                return RedirectToAction("AccessRequests");
+            }
+
+            request.Status = AccessRequestStatus.Denied;
+            request.DecidedAt = System.DateTime.Now;
+            request.DecidedByAdminId = _userManager.GetUserId(User);
+            await _context.SaveChangesAsync();
+
+            var body = $@"
+                <p>Hi,</p>
+                <p>Thanks for your interest in applying as an instructor on EduLearn.</p>
+                <p>We ran into a technical issue processing your request and weren't able to move it forward this time. This isn't a reflection on you — please feel free to try again in a little while.</p>
+                <p>We're sorry for the inconvenience and appreciate your patience.</p>
+                <p>— EduLearn</p>";
+
+            var sent = await _emailService.SendEmailAsync(request.Email, "Update on Your EduLearn Instructor Access Request", body);
+
+            TempData["EmailResult"] = sent
+                ? $"Request from {request.Email} denied and an email sent."
+                : $"Request from {request.Email} denied, but the email failed to send. Check the email configuration.";
+
+            return RedirectToAction("AccessRequests");
         }
     }
 }

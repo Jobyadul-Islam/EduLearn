@@ -1,0 +1,66 @@
+@model List<EduLearn.Models.ViewModels.StudentRosterRowViewModel>
+
+@{
+    var course = (EduLearn.Models.Course)ViewBag.Course;
+    ViewData["Title"] = $"Students — {course.Title}";
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to My Courses</a>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 mt-2">
+    <div>
+        <h2 class="section-title mb-1">Students — @course.Title</h2>
+        <p class="text-muted-2 mb-0">Everyone enrolled in this course.</p>
+    </div>
+    <a asp-action="CourseReport" asp-route-courseId="@course.Id" class="btn btn-outline-primary">View Report</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-0">No one has enrolled in this course yet.</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Email</th>
+                        <th>Enrolled</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td>@s.StudentName</td>
+                            <td>@s.StudentEmail</td>
+                            <td class="text-muted-2 small">@s.EnrollDate.ToString("MMM d, yyyy")</td>
+                            <td>
+                                <span class="@(s.Status == EduLearn.Models.EnrollmentStatus.Active ? "status-pill approved" : "status-pill pending")">
+                                    @s.Status
+                                </span>
+                            </td>
+                            <td>@s.ProgressPercentage%</td>
+                            <td class="text-muted-2 small">
+                                @(s.LastActivityType ?? "—")
+                                @if (s.LastActivityAt.HasValue)
+                                {
+                                    <text> — @s.LastActivityAt.Value.ToString("MMM d, yyyy")</text>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

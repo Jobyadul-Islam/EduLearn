@@ -23,8 +23,9 @@
                 <textarea asp-for="Description" class="form-control" rows="4"></textarea>
             </div>
             <div class="mb-3">
-                <label asp-for="Price" class="form-label">Price ($)</label>
-                <input asp-for="Price" class="form-control" />
+                <label class="form-label">Current Price</label>
+                <input type="text" class="form-control" value="@(Model.Price == 0 ? "Free" : $"TK {Model.Price}")" disabled />
+                <div class="form-text">Set by an Admin — not editable here.</div>
             </div>
             <div class="mb-3">
                 <label asp-for="CategoryId" class="form-label">Category</label>

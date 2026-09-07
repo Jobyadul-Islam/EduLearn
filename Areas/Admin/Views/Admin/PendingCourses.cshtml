@@ -46,21 +46,49 @@ else
                         <h5 class="mb-1">@course.Title</h5>
                         <p class="small text-muted-2 mb-1">@course.Description</p>
                         <p class="small mb-0">
-                            By <strong>@course.Instructor?.FullName</strong> ·
-                            @(course.Price == 0 ? "Free" : $"TK {course.Price}")
+                            By <strong>@course.Instructor?.FullName</strong>
                         </p>
                     </div>
                     <div class="col-md-3 text-md-end">
                         <div class="d-flex flex-column gap-2">
                             <a asp-controller="Course" asp-action="Details" asp-route-id="@course.Id" asp-area="" target="_blank" class="btn btn-sm btn-outline-secondary">Preview</a>
-                            <form asp-action="ApproveCourse" asp-route-id="@course.Id" method="post">
-                                <button type="submit" class="btn btn-sm btn-success w-100">Approve</button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal-@course.Id">
+                                Approve
+                            </button>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal-@course.Id">
                                 Reject
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="approveModal-@course.Id" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form asp-action="ApproveCourse" asp-route-id="@course.Id" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Approve "@course.Title"</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-2">Set the price for this course:</p>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="isFree" id="priceFree-@course.Id" value="true" checked onchange="document.getElementById('priceAmount-@course.Id').disabled = true" />
+                                <label class="form-check-label" for="priceFree-@course.Id">Free</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="isFree" id="priceSet-@course.Id" value="false" onchange="document.getElementById('priceAmount-@course.Id').disabled = false" />
+                                <label class="form-check-label" for="priceSet-@course.Id">Set a price</label>
+                            </div>
+                            <input type="number" name="price" id="priceAmount-@course.Id" class="form-control" min="1" step="1" placeholder="Amount in TK" disabled />
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success">Approve Course</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

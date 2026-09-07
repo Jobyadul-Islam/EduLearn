@@ -1,0 +1,120 @@
+@model List<EduLearn.Models.InstructorAccessRequest>
+
+@{
+    ViewData["Title"] = "Access Requests";
+    var emailResult = TempData["EmailResult"] as string;
+    var infoType = "info";
+}
+
+@section Toasts {
+    @if (emailResult != null)
+    {
+        <partial name="_Toast" model="(emailResult, infoType)" />
+    }
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">Access Requests</h2>
+    <p class="text-muted-2">Review requests to apply as an instructor. Approving one emails a verification code and application link.</p>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="5" class="text-center text-muted-2 py-4">No access requests yet.</td>
+                </tr>
+            }
+            @foreach (var request in Model)
+            {
+                <tr>
+                    <td>@request.Email</td>
+                    <td><span class="badge text-bg-light border">@request.Method</span></td>
+                    <td>
+                        @if (request.Status == EduLearn.Models.AccessRequestStatus.Approved)
+                        {
+                            <span class="status-pill approved">Approved</span>
+                        }
+                        else if (request.Status == EduLearn.Models.AccessRequestStatus.Denied)
+                        {
+                            <span class="status-pill rejected">Denied</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill pending">Pending</span>
+                        }
+                    </td>
+                    <td>@request.CreatedAt.ToString("g")</td>
+                    <td>
+                        @if (request.Status == EduLearn.Models.AccessRequestStatus.Pending)
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-success text-nowrap" data-bs-toggle="modal" data-bs-target="#approveModal-@request.Id">Approve & Email</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#denyModal-@request.Id">Deny</button>
+                            </div>
+
+                            <div class="modal fade" id="approveModal-@request.Id" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form asp-action="ApproveAccessRequest" asp-route-id="@request.Id" method="post">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Approve Access Request</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="mb-0">Approve the request from <strong>@request.Email</strong>? They'll be emailed a verification code and a link to the application form.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                                                <button type="submit" class="btn btn-success">Yes, Approve</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade" id="denyModal-@request.Id" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form asp-action="DenyAccessRequest" asp-route-id="@request.Id" method="post">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Deny Access Request</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="mb-0">Deny the request from <strong>@request.Email</strong>? This can't be undone from this page.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                                                <button type="submit" class="btn btn-danger">Yes, Deny</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-muted-2">—</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+</div>

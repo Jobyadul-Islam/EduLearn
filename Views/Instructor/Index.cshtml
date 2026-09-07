@@ -73,6 +73,8 @@ else
                         <p class="card-text"><strong>@(course.Price == 0 ? "Free" : $"TK {course.Price}")</strong></p>
                         <div class="mt-auto d-flex flex-wrap gap-2">
                             <a asp-action="CourseDetails" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary">Manage Content</a>
+                            <a asp-action="Students" asp-route-courseId="@course.Id" class="btn btn-sm btn-outline-info">Students</a>
+                            <a asp-action="CourseReport" asp-route-courseId="@course.Id" class="btn btn-sm btn-outline-info">Report</a>
                             <a asp-action="EditCourse" asp-route-id="@course.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                             <a asp-action="DeleteCourse" asp-route-id="@course.Id" class="btn btn-sm btn-outline-danger">Delete</a>
                         </div>

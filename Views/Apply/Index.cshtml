@@ -1,29 +1,46 @@
 @{
     ViewData["Title"] = "Apply as Instructor";
+    bool googleEnabled = ViewBag.GoogleEnabled ?? false;
+    var applyError = TempData["ApplyError"] as string;
 }
 
 <div class="auth-card">
     <div class="text-center mb-4">
         <svg class="icon" style="width:2.5rem;height:2.5rem;color:var(--color-primary);" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
         <h2 class="section-title mt-2 mb-1">Apply as Instructor</h2>
-        <p class="text-muted-2">Enter the 6-digit PIN we emailed you to start your application.</p>
+        <p class="text-muted-2">Request access to the application form to get started.</p>
     </div>
 
     <div class="card form-card">
         <div asp-validation-summary="All" class="text-danger mb-2"></div>
-        <form asp-action="VerifyPin" method="post">
-            <div class="mb-4">
-                <label for="pinInput" class="form-label">6-Digit PIN</label>
-                <input type="text" id="pinInput" name="pin" class="form-control text-center" style="font-size:1.5rem; letter-spacing:.5rem;" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autofocus />
+        @if (applyError != null)
+        {
+            <div class="alert alert-danger">@applyError</div>
+        }
+
+        @if (googleEnabled)
+        {
+            <a asp-action="GoogleChallenge" class="btn btn-outline-secondary w-100 mb-3 d-flex align-items-center justify-content-center gap-2">
+                <svg style="width:1.1rem;height:1.1rem;" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.5 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 6.5 29.5 4.5 24 4.5 15.9 4.5 8.9 9 6.3 14.7z"/><path fill="#4CAF50" d="M24 44.5c5.4 0 10.3-1.8 14-5l-6.5-5.5c-2 1.4-4.6 2.3-7.5 2.3-5.3 0-9.7-3.3-11.3-8l-6.6 5.1C9 39.6 16 44.5 24 44.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.5 5.5c-.5.4 7.4-5.4 7.4-15.7 0-1.2-.1-2.4-.4-3.5z"/></svg>
+                Continue with Google
+            </a>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <hr class="flex-grow-1" /><span class="text-muted-2 small">or</span><hr class="flex-grow-1" />
             </div>
-            <button type="submit" class="btn btn-primary w-100">Verify PIN</button>
+        }
+
+        <form asp-action="SubmitEmailRequest" method="post">
+            <div class="mb-3">
+                <label for="emailInput" class="form-label">Email address</label>
+                <input type="email" id="emailInput" name="email" class="form-control" placeholder="you@example.com" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Continue with Email</button>
         </form>
     </div>
 
     <div class="card form-card mt-3">
         <p class="mb-0 small text-muted-2">
-            Don't have a PIN yet? See the Contact section on the <a asp-controller="Home" asp-action="Index">home page</a> for the admin's email —
-            send a request explaining why you'd like to teach on EduLearn, and the admin will email you a one-time PIN to apply.
+            An Admin reviews every request before you're able to fill out the full application — you'll get an email once yours is approved.
         </p>
     </div>
 </div>
