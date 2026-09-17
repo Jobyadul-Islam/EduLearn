@@ -52,7 +52,7 @@ namespace EduLearn.Tests.Integration
             var mockEmailService = TestHelpers.CreateFakeEmailService();
             var mockNotificationService = new Mock<EduLearn.Services.INotificationService>();
 
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object, mockNotificationService.Object);
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object, mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             // 1. Enroll (free course -> should start Active with immediate full access)
@@ -117,7 +117,7 @@ namespace EduLearn.Tests.Integration
             var mockEmailService = TestHelpers.CreateFakeEmailService();
             var mockNotificationService = new Mock<EduLearn.Services.INotificationService>();
 
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object, mockNotificationService.Object);
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), mockEmailService.Object, mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             await controller.Enroll(course.Id);

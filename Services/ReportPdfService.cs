@@ -10,15 +10,15 @@ namespace EduLearn.Services
     {
         public static byte[] GenerateRevenueReport(decimal totalRevenue, List<(DateTime Month, decimal Revenue)> monthlyRevenue)
         {
-            return BuildDocument("Revenue Report", column =>
+            return BuildDocument("Sales Report", column =>
             {
                 column.Item().Row(row =>
                 {
-                    row.RelativeItem().Text("Total Revenue").FontSize(14).Bold();
+                    row.RelativeItem().Text("Total Sales").FontSize(14).Bold();
                     row.RelativeItem().AlignRight().Text($"TK {totalRevenue:0.00}").FontSize(14).Bold().FontColor("#1D4ED8");
                 });
 
-                column.Item().PaddingTop(15).Text("Monthly Revenue — Last 6 Months").FontSize(13).Bold();
+                column.Item().PaddingTop(15).Text("Monthly Sales — Last 6 Months").FontSize(13).Bold();
 
                 column.Item().PaddingTop(5).Table(table =>
                 {
@@ -28,7 +28,7 @@ namespace EduLearn.Services
                         columns.RelativeColumn();
                     });
 
-                    AddHeaderRow(table, "Month", "Revenue (TK)");
+                    AddHeaderRow(table, "Month", "Sales (TK)");
 
                     foreach (var row in monthlyRevenue)
                     {

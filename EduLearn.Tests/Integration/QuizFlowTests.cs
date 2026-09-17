@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EduLearn.Controllers;
@@ -42,6 +43,7 @@ namespace EduLearn.Tests.Integration
                 LessonId = lesson.Id,
                 PassMarkPercentage = passMarkPercentage,
                 TimeLimitMinutes = 10,
+                DueDate = DateTime.Now.AddDays(7),
                 Questions = new List<QuizQuestion>
                 {
                     new QuizQuestion
@@ -84,7 +86,7 @@ namespace EduLearn.Tests.Integration
             var (_, _, _, _, quiz) = SeedCourseWithQuiz(context, instructor.Id);
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>(), Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             var result = controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 });
@@ -110,7 +112,7 @@ namespace EduLearn.Tests.Integration
             var (_, _, _, _, quiz) = SeedCourseWithQuiz(context, instructor.Id);
 
             var mockUserManager = TestHelpers.CreateMockUserManager(student);
-            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>(), Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
             controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 }); // both correct
@@ -135,13 +137,13 @@ namespace EduLearn.Tests.Integration
             var (_, course, _, _, quiz) = SeedCourseWithQuiz(context, owningInstructor.Id);
 
             var studentUserManager = TestHelpers.CreateMockUserManager(student);
-            var courseController = new CourseController(context, studentUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>());
+            var courseController = new CourseController(context, studentUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>(), Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(courseController, student.Id);
             courseController.SubmitQuiz(quiz.Id, new List<int> { 10, 12 });
 
             // The owning instructor should see this result...
             var owningInstructorUserManager = TestHelpers.CreateMockUserManager(owningInstructor);
-            var ownerController = new InstructorController(context, owningInstructorUserManager.Object, Mock.Of<IWebHostEnvironment>());
+            var ownerController = new InstructorController(context, owningInstructorUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(ownerController, owningInstructor.Id);
 
             var ownerViewResult = Assert.IsType<ViewResult>(ownerController.QuizResults(null));
@@ -153,7 +155,7 @@ namespace EduLearn.Tests.Integration
 
             // ...but a DIFFERENT instructor must see nothing, even with no course filter applied.
             var otherInstructorUserManager = TestHelpers.CreateMockUserManager(otherInstructor);
-            var otherController = new InstructorController(context, otherInstructorUserManager.Object, Mock.Of<IWebHostEnvironment>());
+            var otherController = new InstructorController(context, otherInstructorUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(otherController, otherInstructor.Id);
 
             var otherViewResult = Assert.IsType<ViewResult>(otherController.QuizResults(null));

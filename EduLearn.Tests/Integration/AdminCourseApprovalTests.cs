@@ -40,7 +40,7 @@ namespace EduLearn.Tests.Integration
 
             var mockUserManager = TestHelpers.CreateMockUserManager(instructor);
             var mockNotificationService = new Mock<INotificationService>();
-            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object);
+            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
 
             await admin.ApproveCourse(course.Id, isFree: false, price: 500);
 
@@ -80,7 +80,7 @@ namespace EduLearn.Tests.Integration
 
             var mockUserManager = TestHelpers.CreateMockUserManager(instructor);
             var mockNotificationService = new Mock<INotificationService>();
-            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object);
+            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
 
             await admin.RejectCourse(course.Id, "  Please add a thumbnail  ");
 
@@ -119,7 +119,7 @@ namespace EduLearn.Tests.Integration
 
             var mockUserManager = TestHelpers.CreateMockUserManager(instructor);
             var mockNotificationService = new Mock<INotificationService>();
-            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object);
+            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
 
             await admin.RejectCourse(course.Id, "   ");
 
@@ -149,7 +149,7 @@ namespace EduLearn.Tests.Integration
             mockUserManager.Setup(m => m.GeneratePasswordResetTokenAsync(applicant)).ReturnsAsync("fake-reset-token");
 
             var mockNotificationService = new Mock<INotificationService>();
-            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object);
+            var admin = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(admin, "some-admin-id");
 
             var actionContext = new ActionContext(
@@ -206,7 +206,7 @@ namespace EduLearn.Tests.Integration
             mockEmailService.Setup(m => m.SendEmailAsync(applicant.Email, It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
 
             var mockNotificationService = new Mock<INotificationService>();
-            var admin = new AdminController(context, mockUserManager.Object, mockEmailService.Object, mockNotificationService.Object);
+            var admin = new AdminController(context, mockUserManager.Object, mockEmailService.Object, mockNotificationService.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(admin, "some-admin-id");
 
             await admin.Reject(applicant.Id);
@@ -255,7 +255,7 @@ namespace EduLearn.Tests.Integration
             mockUserManager.Setup(m => m.GetUsersInRoleAsync("Student")).ReturnsAsync(new List<ApplicationUser> { student });
             mockUserManager.Setup(m => m.GetUsersInRoleAsync("Instructor")).ReturnsAsync(new List<ApplicationUser> { activeInstructor, rejectedInstructor });
 
-            var admin_ = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), Mock.Of<INotificationService>());
+            var admin_ = new AdminController(context, mockUserManager.Object, Mock.Of<IEmailService>(), Mock.Of<INotificationService>(), Mock.Of<EduLearn.Services.IFileUploadService>());
 
             var result = await admin_.Index() as ViewResult;
 

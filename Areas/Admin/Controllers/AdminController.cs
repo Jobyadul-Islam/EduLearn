@@ -20,13 +20,15 @@ namespace EduLearn.Areas.Admin.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailService _emailService;
         private readonly INotificationService _notificationService;
+        private readonly IFileUploadService _fileUploadService;
 
-        public AdminController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IEmailService emailService, INotificationService notificationService)
+        public AdminController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IEmailService emailService, INotificationService notificationService, IFileUploadService fileUploadService)
         {
             _context = context;
             _userManager = userManager;
             _emailService = emailService;
             _notificationService = notificationService;
+            _fileUploadService = fileUploadService;
         }
 
         public async Task<IActionResult> Index()
@@ -369,10 +371,11 @@ namespace EduLearn.Areas.Admin.Controllers
 
             var body = $@"
                 <p>Hi {System.Net.WebUtility.HtmlEncode(user.FullName)},</p>
-                <p>Your EduLearn instructor application has been approved!</p>
+                <p>Congratulations — your EduLearn instructor application has been approved! We're excited to have you join our community of instructors.</p>
                 <p><a href=""{setPasswordLink}"">Click here to set your password and log in</a></p>
+                <p>Once you're in, you can start building your first course.</p>
                 <p>This link is single-use and expires for your security. If it stops working, use ""Forgot your password?"" on the login page instead.</p>
-                <p>— EduLearn</p>";
+                <p>Welcome aboard!<br>— EduLearn</p>";
 
             var sent = await _emailService.SendEmailAsync(user.Email, "Your EduLearn Instructor Account is Approved", body);
 
@@ -479,6 +482,159 @@ namespace EduLearn.Areas.Admin.Controllers
             return View(user);
         }
 
+        // Resumes live in private storage (see FileUploadService) — this is the only way to
+        // reach one, and only an Admin (controller-level [Authorize(Roles = "Admin")]) can.
+        public IActionResult DownloadResume(string id)
+        {
+            var user = _context.Users.FirstOrDefault(u => u.Id == id);
+            if (user == null || string.IsNullOrEmpty(user.ResumePath)) return NotFound();
+
+            var physicalPath = _fileUploadService.ResolvePrivateFilePath(user.ResumePath, "resumes");
+            if (physicalPath == null) return NotFound();
+
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            var contentType = provider.TryGetContentType(physicalPath, out var ct) ? ct : "application/octet-stream";
+            return PhysicalFile(physicalPath, contentType, System.IO.Path.GetFileName(physicalPath));
+        }
+
+        // Read-only record of turned-down instructor applications — kept for reference
+        // (who applied, when, why) even though the account itself is deleted on rejection.
+        public IActionResult RejectedApplications()
+        {
+            var archives = _context.RejectedApplicationArchives
+                .OrderByDescending(a => a.RejectedAt)
+                .ToList();
+
+            return View(archives);
+        }
+
+        // Every payment ever recorded, most recent first — the working list for issuing refunds.
+        public IActionResult Payments()
+        {
+            var payments = _context.Payments
+                .Include(p => p.Course)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToList();
+
+            var studentIds = payments.Select(p => p.StudentId).Distinct().ToList();
+            ViewBag.StudentNamesById = _context.Users
+                .Where(u => studentIds.Contains(u.Id))
+                .ToDictionary(u => u.Id, u => u.FullName);
+
+            return View(payments);
+        }
+
+        // Marks a successful payment as refunded and revokes the access it paid for — the
+        // actual money movement happens on bKash's side (or wherever the admin processed the
+        // refund); this just keeps EduLearn's own records and access in sync with that.
+        [HttpPost]
+        public async Task<IActionResult> RefundPayment(int id)
+        {
+            var payment = _context.Payments.Include(p => p.Course).FirstOrDefault(p => p.Id == id);
+            if (payment == null || payment.Status != PaymentStatus.Success)
+            {
+                TempData["EmailResult"] = "Payment not found or not eligible for a refund.";
+                return RedirectToAction("Payments");
+            }
+
+            payment.Status = PaymentStatus.Refunded;
+
+            var enrollment = _context.Enrollments
+                .FirstOrDefault(e => e.CourseId == payment.CourseId && e.StudentId == payment.StudentId);
+            if (enrollment != null)
+            {
+                enrollment.Status = EnrollmentStatus.Pending;
+            }
+
+            await _context.SaveChangesAsync();
+
+            await _notificationService.NotifyAsync(
+                payment.StudentId,
+                $"Your payment for \"{payment.Course.Title}\" was refunded. Full access to the course has been revoked.",
+                $"/Course/Details/{payment.CourseId}");
+
+            TempData["EmailResult"] = $"Payment {payment.TransactionId} marked as refunded and course access revoked.";
+            return RedirectToAction("Payments");
+        }
+
+        // ---------------- Coupons ----------------
+
+        public IActionResult Coupons()
+        {
+            var coupons = _context.Coupons
+                .OrderByDescending(c => c.CreatedAt)
+                .ToList();
+
+            return View(coupons);
+        }
+
+        public IActionResult CreateCoupon()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult CreateCoupon(string code, int discountPercent, DateTime? expiresAt, int? maxRedemptions)
+        {
+            code = (code ?? "").Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                ModelState.AddModelError("", "Enter a coupon code.");
+            }
+            else if (_context.Coupons.Any(c => c.Code == code))
+            {
+                ModelState.AddModelError("", "A coupon with this code already exists.");
+            }
+
+            if (discountPercent < 1 || discountPercent > 100)
+            {
+                ModelState.AddModelError("", "Discount must be between 1 and 100 percent.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Code = code;
+                ViewBag.DiscountPercent = discountPercent;
+                return View();
+            }
+
+            _context.Coupons.Add(new Coupon
+            {
+                Code = code,
+                DiscountPercent = discountPercent,
+                ExpiresAt = expiresAt,
+                MaxRedemptions = maxRedemptions
+            });
+            _context.SaveChanges();
+
+            return RedirectToAction("Coupons");
+        }
+
+        [HttpPost]
+        public IActionResult ToggleCouponActive(int id)
+        {
+            var coupon = _context.Coupons.Find(id);
+            if (coupon != null)
+            {
+                coupon.IsActive = !coupon.IsActive;
+                _context.SaveChanges();
+            }
+            return RedirectToAction("Coupons");
+        }
+
+        [HttpPost]
+        public IActionResult DeleteCoupon(int id)
+        {
+            var coupon = _context.Coupons.Find(id);
+            if (coupon != null)
+            {
+                _context.Coupons.Remove(coupon);
+                _context.SaveChanges();
+            }
+            return RedirectToAction("Coupons");
+        }
+
         public IActionResult AccessRequests()
         {
             var requests = _context.InstructorAccessRequests
@@ -508,7 +664,7 @@ namespace EduLearn.Areas.Admin.Controllers
             request.AccessToken = System.Security.Cryptography.RandomNumberGenerator.GetHexString(32);
             await _context.SaveChangesAsync();
 
-            var applyLink = Url.Action("VerifyAccessCode", "Apply", new { token = request.AccessToken }, Request.Scheme);
+            var applyLink = Url.Action("VerifyAccessCode", "Apply", new { area = "", token = request.AccessToken }, Request.Scheme);
             var body = $@"
                 <p>Hi,</p>
                 <p>Your request to apply as an instructor on EduLearn has been approved.</p>

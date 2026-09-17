@@ -31,7 +31,7 @@
                 <input asp-for="Input.ConfirmPassword" type="password" class="form-control" />
             </div>
             <div class="mb-4" data-picture-cropper>
-                <label asp-for="Input.ProfilePicture" class="form-label">Profile Picture</label>
+                <label asp-for="Input.ProfilePicture" class="form-label">Profile Picture <span class="text-muted-2 fw-normal">(optional)</span></label>
                 <input asp-for="Input.ProfilePicture" type="file" accept="image/jpeg,image/png,image/webp" class="form-control" data-cropper-file-input />
                 <span asp-validation-for="Input.ProfilePicture" class="text-danger"></span>
                 <div class="d-none mt-3 text-center" data-cropper-stage>

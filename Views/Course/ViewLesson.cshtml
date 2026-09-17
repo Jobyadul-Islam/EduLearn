@@ -4,9 +4,18 @@
     ViewData["Title"] = Model.Title;
     var submittedIds = (List<int>)ViewBag.SubmittedAssignmentIds;
     var quizResults = (Dictionary<int, EduLearn.Models.QuizResult>)ViewBag.QuizResultsByQuizId;
+    // Admins/Instructors are previewing course content, not taking the course — they
+    // never have real progress/submissions/attempts, so student-only actions don't apply.
+    bool isPreviewOnly = User.IsInRole("Admin") || User.IsInRole("Instructor");
+    var lessonError = TempData["LessonError"] as string;
 }
 
 <a asp-action="Details" asp-route-id="@Model.Module.CourseId" class="text-decoration-none small text-muted-2">← Back to Course</a>
+
+@if (lessonError != null)
+{
+    <div class="alert alert-warning mt-2">@lessonError</div>
+}
 
 <div class="d-flex justify-content-between align-items-start mt-2 mb-3">
     <h2 class="mb-0">@Model.Title</h2>
@@ -25,7 +34,7 @@
     </div>
 </div>
 
-@if (!(bool)ViewBag.IsCompleted)
+@if (!isPreviewOnly && !(bool)ViewBag.IsCompleted)
 {
     <form asp-action="MarkComplete" method="post" class="mb-3">
         <input type="hidden" name="lessonId" value="@Model.Id" />
@@ -47,7 +56,7 @@
 @if (!string.IsNullOrEmpty(Model.FilePath))
 {
     <div class="mb-3">
-        <a href="@Model.FilePath" target="_blank" class="btn btn-outline-primary">Download / View File</a>
+        <a asp-action="LessonFile" asp-route-lessonId="@Model.Id" target="_blank" class="btn btn-outline-primary">Download / View File</a>
     </div>
 }
 
@@ -56,24 +65,35 @@
     <h4 class="mt-4 section-title h5">Assignments</h4>
     @foreach (var assignment in Model.Assignments)
     {
+        bool assignmentPastDue = DateTime.Now > assignment.DueDate;
         <div class="card mb-2">
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <h5 class="mb-1">@assignment.Title</h5>
                     <p class="mb-1 text-muted-2 small">@assignment.Description</p>
-                    <p class="mb-0"><small class="text-muted-2">Due: @assignment.DueDate.ToShortDateString()</small></p>
+                    <p class="mb-0"><small class="@(assignmentPastDue ? "text-danger" : "text-muted-2")">Due: @assignment.DueDate.ToString("MMM d, yyyy h:mm tt")</small></p>
                 </div>
-                <div class="text-end">
-                    @if (submittedIds.Contains(assignment.Id))
-                    {
-                        <div class="mb-2"><span class="status-pill approved">Submitted</span></div>
-                        <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-outline-primary">Resubmit</a>
-                    }
-                    else
-                    {
-                        <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-primary">Submit Assignment</a>
-                    }
-                </div>
+                @if (!isPreviewOnly)
+                {
+                    <div class="text-end">
+                        @if (submittedIds.Contains(assignment.Id))
+                        {
+                            <div class="mb-2"><span class="status-pill approved">Submitted</span></div>
+                        }
+                        @if (assignmentPastDue)
+                        {
+                            <span class="status-pill rejected">Deadline Passed</span>
+                        }
+                        else if (submittedIds.Contains(assignment.Id))
+                        {
+                            <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-outline-primary">Resubmit</a>
+                        }
+                        else
+                        {
+                            <a asp-action="SubmitAssignment" asp-route-assignmentId="@assignment.Id" class="btn btn-sm btn-primary">Submit Assignment</a>
+                        }
+                    </div>
+                }
             </div>
         </div>
     }
@@ -84,30 +104,42 @@
     <h4 class="mt-4 section-title h5">Quizzes</h4>
     @foreach (var quiz in Model.Quizzes)
     {
+        bool quizPastDue = DateTime.Now > quiz.DueDate;
         <div class="card mb-2">
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <h5 class="mb-1">@quiz.Title</h5>
-                    <p class="mb-0 text-muted-2 small">
+                    <p class="mb-1 text-muted-2 small">
                         @quiz.Questions.Count question@(quiz.Questions.Count == 1 ? "" : "s")
                         · @quiz.TimeLimitMinutes min time limit · Pass mark @quiz.PassMarkPercentage%
                     </p>
+                    <p class="mb-0"><small class="@(quizPastDue ? "text-danger" : "text-muted-2")">Due: @quiz.DueDate.ToString("MMM d, yyyy h:mm tt")</small></p>
                 </div>
-                <div class="text-end">
-                    @if (quizResults.TryGetValue(quiz.Id, out var result))
-                    {
-                        <div class="mb-2">
-                            <span class="@(result.Passed ? "status-pill approved" : "status-pill rejected")">
-                                @(result.Passed ? "Passed" : "Failed") — @result.Score/@result.TotalQuestions
-                            </span>
-                        </div>
-                        <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-outline-primary">Retake Quiz</a>
-                    }
-                    else
-                    {
-                        <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-primary">Take Quiz</a>
-                    }
-                </div>
+                @if (!isPreviewOnly)
+                {
+                    <div class="text-end">
+                        @if (quizResults.TryGetValue(quiz.Id, out var result))
+                        {
+                            <div class="mb-2">
+                                <span class="@(result.Passed ? "status-pill approved" : "status-pill rejected")">
+                                    @(result.Passed ? "Passed" : "Failed") — @result.Score/@result.TotalQuestions
+                                </span>
+                            </div>
+                        }
+                        @if (quizPastDue)
+                        {
+                            <span class="status-pill rejected">Deadline Passed</span>
+                        }
+                        else if (quizResults.ContainsKey(quiz.Id))
+                        {
+                            <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-outline-primary">Retake Quiz</a>
+                        }
+                        else
+                        {
+                            <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-primary">Take Quiz</a>
+                        }
+                    </div>
+                }
             </div>
         </div>
     }

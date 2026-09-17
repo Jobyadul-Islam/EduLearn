@@ -27,6 +27,12 @@ namespace EduLearn.Models
         public DateTime? OtpExpiresAt { get; set; }
         public string? AccessToken { get; set; }
 
+        // Counts wrong-code attempts against OtpCode. Capped at MaxOtpAttempts so the 6-digit
+        // code can't be brute-forced over the 24-hour validity window even by someone who has
+        // obtained the (otherwise unguessable) AccessToken link.
+        public int OtpAttempts { get; set; }
+        public const int MaxOtpAttempts = 5;
+
         // Mirrors the old InstructorApplicationPin.IsUsed — flips true only once the
         // applicant successfully submits the full Form, not merely on OTP verification,
         // so an abandoned-then-resumed session still works.

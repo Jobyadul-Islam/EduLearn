@@ -43,15 +43,16 @@ namespace EduLearn.Areas.Identity.Pages.Account
             [DataType(DataType.Password), Compare("Password")]
             public string ConfirmPassword { get; set; }
 
-            [Required(ErrorMessage = "A profile picture is required.")]
+            // Optional — skip it and you get the default avatar (same one shown in the nav
+            // bar for anyone without a picture). Requiring a photo+crop before an account
+            // even exists was pure signup friction with no functional need.
             [Display(Name = "Profile Picture")]
-            public IFormFile ProfilePicture { get; set; }
+            public IFormFile? ProfilePicture { get; set; }
 
             // Populated client-side by the drag/zoom cropper (wwwroot/js/site.js) as a
             // data:image/jpeg;base64,... string — this, not ProfilePicture's raw bytes,
-            // is what actually gets saved.
-            [Required(ErrorMessage = "Please drag your photo into position before submitting.")]
-            public string CroppedPictureData { get; set; }
+            // is what actually gets saved. Empty means "no picture chosen."
+            public string? CroppedPictureData { get; set; }
         }
 
         // Held in session (not the database) until the OTP is verified, so an
@@ -65,7 +66,7 @@ namespace EduLearn.Areas.Identity.Pages.Account
             public string Password { get; set; }
             public string Otp { get; set; }
             public DateTime ExpiresAt { get; set; }
-            public string ProfilePictureBase64 { get; set; }
+            public string? ProfilePictureBase64 { get; set; }
             public string ProfilePictureExtension { get; set; }
         }
 
@@ -85,29 +86,37 @@ namespace EduLearn.Areas.Identity.Pages.Account
 
             // The raw file the user picked is only used to trigger the client-side cropper —
             // what actually gets saved is the cropped square JPEG it produces, decoded here.
+            // A blank CroppedPictureData just means the user skipped the photo entirely.
             const string extension = ".jpg";
-            byte[] pictureBytes;
-            try
+            string? pictureBase64 = null;
+
+            if (!string.IsNullOrWhiteSpace(Input.CroppedPictureData))
             {
-                pictureBytes = DecodeCroppedImage(Input.CroppedPictureData);
-            }
-            catch (FormatException)
-            {
-                ModelState.AddModelError("Input.ProfilePicture", "That image couldn't be processed. Please choose it again.");
-                return Page();
+                byte[] pictureBytes;
+                try
+                {
+                    pictureBytes = DecodeCroppedImage(Input.CroppedPictureData);
+                }
+                catch (FormatException)
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", "That image couldn't be processed. Please choose it again.");
+                    return Page();
+                }
+
+                try
+                {
+                    _fileUploadService.ValidateImage(extension, pictureBytes.Length);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    ModelState.AddModelError("Input.ProfilePicture", ex.Message);
+                    return Page();
+                }
+
+                pictureBase64 = Convert.ToBase64String(pictureBytes);
             }
 
-            try
-            {
-                _fileUploadService.ValidateImage(extension, pictureBytes.Length);
-            }
-            catch (InvalidOperationException ex)
-            {
-                ModelState.AddModelError("Input.ProfilePicture", ex.Message);
-                return Page();
-            }
-
-            var otp = new Random().Next(0, 1000000).ToString("D6");
+            var otp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
 
             var pending = new PendingRegistration
             {
@@ -116,7 +125,7 @@ namespace EduLearn.Areas.Identity.Pages.Account
                 Password = Input.Password,
                 Otp = otp,
                 ExpiresAt = DateTime.Now.AddMinutes(10),
-                ProfilePictureBase64 = Convert.ToBase64String(pictureBytes),
+                ProfilePictureBase64 = pictureBase64,
                 ProfilePictureExtension = extension
             };
             HttpContext.Session.SetString(SessionKey, JsonSerializer.Serialize(pending));

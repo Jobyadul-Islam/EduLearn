@@ -42,10 +42,16 @@ namespace EduLearn.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: false);
+            var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: true);
 
             if (result.Succeeded)
                 return RedirectToPage("/Index", new { area = "" });
+
+            if (result.IsLockedOut)
+            {
+                ModelState.AddModelError(string.Empty, "This account has been temporarily locked due to too many failed login attempts. Please try again in a few minutes.");
+                return Page();
+            }
 
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return Page();

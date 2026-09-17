@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -14,7 +16,9 @@ namespace EduLearn.Controllers
     [Authorize(Roles = "Student")]
     public class BkashController : Controller
     {
-        private const string SessionCourseIdKey = "BkashCourseId";
+        // Survives the redirect out to bKash and back — courseIds is never re-trusted from
+        // the client, only from what we stored here right before leaving for bKash.
+        private const string SessionCartKey = "BkashCart";
 
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -27,82 +31,108 @@ namespace EduLearn.Controllers
             _bkash = bkash;
         }
 
+        private class CartSession
+        {
+            public List<int> CourseIds { get; set; } = new();
+            public string? CouponCode { get; set; }
+        }
+
+        // Called both by the single-course "Unlock Full Course" button (courseIds has one
+        // entry) and by the Cart page's "Checkout" button (courseIds has several) — either
+        // way this only ever charges for the caller's own Pending, paid enrollments.
         [HttpPost]
-        public async Task<IActionResult> Pay(int courseId)
+        public async Task<IActionResult> Pay(List<int> courseIds)
         {
             var userId = _userManager.GetUserId(User);
+            var ids = (courseIds ?? new List<int>()).Distinct().ToList();
 
-            var enrollment = _context.Enrollments.Include(e => e.Course).FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
-            if (enrollment == null || enrollment.Status == EnrollmentStatus.Active)
+            var enrollments = _context.Enrollments
+                .Include(e => e.Course)
+                .Where(e => e.StudentId == userId && e.Status == EnrollmentStatus.Pending && ids.Contains(e.CourseId))
+                .ToList();
+
+            if (enrollments.Count == 0)
             {
-                return RedirectToAction("Details", "Course", new { id = courseId });
+                return RedirectToAction("Index", "Cart");
+            }
+
+            var couponCode = HttpContext.Session.GetString(CartController.SessionCouponKey);
+            var (total, _, _) = ComputeTotal(enrollments.Select(e => e.Course).ToList(), couponCode, userId!);
+
+            if (total <= 0)
+            {
+                CompleteOrder(enrollments, couponCode, userId!, transactionId: $"COUPON-{DateTime.Now:yyyyMMddHHmmssfff}");
+                TempData["PaymentSuccess"] = "Your order is complete — the coupon covered the full amount.";
+                return RedirectToAction("MyEnrollments", "Course");
             }
 
             if (!_bkash.IsConfigured)
             {
                 TempData["PaymentError"] = "bKash isn't configured on this server yet.";
-                return RedirectToAction("Checkout", "Course", new { courseId });
+                return RedirectToAction("Index", "Cart");
             }
 
             var idToken = await _bkash.GrantTokenAsync();
             if (idToken == null)
             {
                 TempData["PaymentError"] = "Could not reach bKash. Please try again.";
-                return RedirectToAction("Checkout", "Course", new { courseId });
+                return RedirectToAction("Index", "Cart");
             }
 
             var callbackUrl = Url.Action("AgreementCallback", "Bkash", null, Request.Scheme);
-            var agreement = await _bkash.CreateAgreementAsync(idToken, userId, callbackUrl!);
+            var agreement = await _bkash.CreateAgreementAsync(idToken, userId!, callbackUrl!);
 
             if (!agreement.Success)
             {
                 TempData["PaymentError"] = agreement.ErrorMessage ?? "Could not start the bKash agreement.";
-                return RedirectToAction("Checkout", "Course", new { courseId });
+                return RedirectToAction("Index", "Cart");
             }
 
-            HttpContext.Session.SetInt32(SessionCourseIdKey, courseId);
+            var cart = new CartSession { CourseIds = enrollments.Select(e => e.CourseId).ToList(), CouponCode = couponCode };
+            HttpContext.Session.SetString(SessionCartKey, JsonSerializer.Serialize(cart));
+
             return Redirect(agreement.BkashUrl!);
         }
 
         // The customer's browser lands here after authorizing (or cancelling) the agreement on bKash's page
         public async Task<IActionResult> AgreementCallback(string paymentID, string status)
         {
-            var courseId = HttpContext.Session.GetInt32(SessionCourseIdKey);
-            if (courseId == null) return RedirectToAction("Index", "Course");
+            var cart = LoadCart();
+            if (cart == null) return RedirectToAction("Index", "Course");
 
             if (!string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
             {
-                HttpContext.Session.Remove(SessionCourseIdKey);
+                HttpContext.Session.Remove(SessionCartKey);
                 TempData["PaymentError"] = $"bKash agreement was not completed ({status}).";
-                return RedirectToAction("Checkout", "Course", new { courseId = courseId.Value });
+                return RedirectToAction("Index", "Cart");
             }
 
             var idToken = await _bkash.GrantTokenAsync();
             if (idToken == null)
             {
                 TempData["PaymentError"] = "Could not reach bKash. Please try again.";
-                return RedirectToAction("Checkout", "Course", new { courseId = courseId.Value });
+                return RedirectToAction("Index", "Cart");
             }
 
             var executed = await _bkash.ExecuteAgreementAsync(idToken, paymentID);
             if (!executed.Success)
             {
                 TempData["PaymentError"] = executed.ErrorMessage ?? "Could not confirm the bKash agreement.";
-                return RedirectToAction("Checkout", "Course", new { courseId = courseId.Value });
+                return RedirectToAction("Index", "Cart");
             }
 
-            var course = _context.Courses.Find(courseId.Value);
-            if (course == null) return RedirectToAction("Index", "Course");
+            var userId = _userManager.GetUserId(User);
+            var courses = _context.Courses.Where(c => cart.CourseIds.Contains(c.Id)).ToList();
+            var (total, _, _) = ComputeTotal(courses, cart.CouponCode, userId!);
 
             var callbackUrl = Url.Action("PaymentCallback", "Bkash", null, Request.Scheme);
-            var invoiceNumber = $"ENR-{courseId.Value}-{DateTime.Now:yyyyMMddHHmmssfff}";
-            var userId = _userManager.GetUserId(User);
-            var payment = await _bkash.CreatePaymentAsync(idToken, userId!, executed.AgreementId!, course.Price, invoiceNumber, callbackUrl!);
+            var invoiceNumber = $"ORD-{DateTime.Now:yyyyMMddHHmmssfff}";
+            var payment = await _bkash.CreatePaymentAsync(idToken, userId!, executed.AgreementId!, total, invoiceNumber, callbackUrl!);
 
             if (!payment.Success)
             {
                 TempData["PaymentError"] = payment.ErrorMessage ?? "Could not start the bKash payment.";
-                return RedirectToAction("Checkout", "Course", new { courseId = courseId.Value });
+                return RedirectToAction("Index", "Cart");
             }
 
             return Redirect(payment.BkashUrl!);
@@ -111,58 +141,145 @@ namespace EduLearn.Controllers
         // The customer's browser lands here after authorizing (or cancelling) the actual charge
         public async Task<IActionResult> PaymentCallback(string paymentID, string status)
         {
-            var courseId = HttpContext.Session.GetInt32(SessionCourseIdKey);
-            HttpContext.Session.Remove(SessionCourseIdKey);
-            if (courseId == null) return RedirectToAction("Index", "Course");
+            var cart = LoadCart();
+            HttpContext.Session.Remove(SessionCartKey);
+            if (cart == null) return RedirectToAction("Index", "Course");
 
             var userId = _userManager.GetUserId(User);
-            var enrollment = _context.Enrollments.Include(e => e.Course).FirstOrDefault(e => e.CourseId == courseId.Value && e.StudentId == userId);
-            if (enrollment == null) return RedirectToAction("Index", "Course");
+            var enrollments = _context.Enrollments
+                .Include(e => e.Course)
+                .Where(e => e.StudentId == userId && cart.CourseIds.Contains(e.CourseId) && e.Status == EnrollmentStatus.Pending)
+                .ToList();
+            if (enrollments.Count == 0) return RedirectToAction("Index", "Course");
+
+            var invoiceNumber = $"ORD-{DateTime.Now:yyyyMMddHHmmssfff}";
+            var (_, coupon, perCourseAmounts) = ComputeTotal(enrollments.Select(e => e.Course).ToList(), cart.CouponCode, userId!);
 
             if (!string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
             {
-                _context.Payments.Add(new Payment
-                {
-                    StudentId = userId,
-                    CourseId = courseId.Value,
-                    Amount = enrollment.Course.Price,
-                    TransactionId = paymentID,
-                    Status = PaymentStatus.Failed,
-                    CreatedAt = DateTime.Now
-                });
-                _context.SaveChanges();
-
+                RecordFailedPayments(enrollments, perCourseAmounts, paymentID, invoiceNumber, userId!);
                 TempData["PaymentError"] = $"bKash payment was not completed ({status}).";
-                return RedirectToAction("Checkout", "Course", new { courseId = courseId.Value });
+                return RedirectToAction("Index", "Cart");
             }
 
             var idToken = await _bkash.GrantTokenAsync();
             var executed = idToken == null ? new BkashPaymentExecuteResult { Success = false } : await _bkash.ExecutePaymentAsync(idToken, paymentID);
 
-            var record = new Payment
-            {
-                StudentId = userId,
-                CourseId = courseId.Value,
-                Amount = enrollment.Course.Price,
-                TransactionId = executed.TrxId ?? paymentID,
-                Status = executed.Success ? PaymentStatus.Success : PaymentStatus.Failed,
-                CreatedAt = DateTime.Now
-            };
-            _context.Payments.Add(record);
-
             if (!executed.Success)
             {
-                _context.SaveChanges();
+                RecordFailedPayments(enrollments, perCourseAmounts, paymentID, invoiceNumber, userId!);
                 TempData["PaymentError"] = executed.ErrorMessage ?? "Could not confirm the bKash payment.";
-                return RedirectToAction("Checkout", "Course", new { courseId = courseId.Value });
+                return RedirectToAction("Index", "Cart");
             }
 
-            enrollment.Status = EnrollmentStatus.Active;
-            enrollment.PaymentDate = DateTime.Now;
-            _context.SaveChanges();
+            CompleteOrder(enrollments, userId!, perCourseAmounts, executed.TrxId ?? paymentID, invoiceNumber, coupon);
 
-            TempData["PaymentSuccess"] = $"Payment successful via bKash — transaction {record.TransactionId}.";
-            return RedirectToAction("Details", "Course", new { id = courseId.Value });
+            TempData["PaymentSuccess"] = $"Payment successful via bKash — order {invoiceNumber}.";
+            return RedirectToAction("MyEnrollments", "Course");
+        }
+
+        private void RecordFailedPayments(List<Enrollment> enrollments, Dictionary<int, decimal> perCourseAmounts, string transactionId, string orderReference, string userId)
+        {
+            foreach (var e in enrollments)
+            {
+                _context.Payments.Add(new Payment
+                {
+                    StudentId = userId,
+                    CourseId = e.CourseId,
+                    Amount = perCourseAmounts.GetValueOrDefault(e.CourseId, e.Course.Price),
+                    TransactionId = transactionId,
+                    Status = PaymentStatus.Failed,
+                    CreatedAt = DateTime.Now,
+                    OrderReference = orderReference
+                });
+            }
+            _context.SaveChanges();
+        }
+
+        // Free-after-coupon path (total == 0) — no bKash involved, just fulfill the order directly.
+        private void CompleteOrder(List<Enrollment> enrollments, string? couponCode, string userId, string transactionId)
+        {
+            var (_, coupon, perCourseAmounts) = ComputeTotal(enrollments.Select(e => e.Course).ToList(), couponCode, userId);
+            CompleteOrder(enrollments, userId, perCourseAmounts, transactionId, transactionId, coupon);
+        }
+
+        private void CompleteOrder(List<Enrollment> enrollments, string userId, Dictionary<int, decimal> perCourseAmounts, string transactionId, string orderReference, Coupon? coupon)
+        {
+            decimal totalDiscount = 0;
+
+            foreach (var e in enrollments)
+            {
+                var amount = perCourseAmounts.GetValueOrDefault(e.CourseId, e.Course.Price);
+                var discount = e.Course.Price - amount;
+                if (discount > 0) totalDiscount += discount;
+
+                _context.Payments.Add(new Payment
+                {
+                    StudentId = userId,
+                    CourseId = e.CourseId,
+                    Amount = amount,
+                    TransactionId = transactionId,
+                    Status = PaymentStatus.Success,
+                    CreatedAt = DateTime.Now,
+                    OrderReference = orderReference,
+                    DiscountAmount = discount > 0 ? discount : null,
+                    CouponCode = coupon?.Code
+                });
+
+                e.Status = EnrollmentStatus.Active;
+                e.PaymentDate = DateTime.Now;
+            }
+
+            if (coupon != null)
+            {
+                _context.CouponRedemptions.Add(new CouponRedemption
+                {
+                    CouponId = coupon.Id,
+                    StudentId = userId,
+                    OrderReference = orderReference,
+                    DiscountAmount = totalDiscount
+                });
+                coupon.TimesRedeemed++;
+            }
+
+            _context.SaveChanges();
+            HttpContext.Session.Remove(CartController.SessionCouponKey);
+        }
+
+        // Re-validates the coupon and re-prices every course from the database — never
+        // trusts a total computed earlier in the flow, since coupon validity (redemption
+        // limits especially) can change between initiating payment and the callback.
+        private (decimal Total, Coupon? Coupon, Dictionary<int, decimal> PerCourseAmounts) ComputeTotal(List<Course> courses, string? couponCode, string userId)
+        {
+            var (coupon, _) = CouponService.Validate(_context, couponCode, userId);
+            var perCourse = new Dictionary<int, decimal>();
+            decimal total = 0;
+
+            foreach (var course in courses)
+            {
+                var amount = coupon != null
+                    ? Math.Round(course.Price * (100 - coupon.DiscountPercent) / 100m, 2)
+                    : course.Price;
+                perCourse[course.Id] = amount;
+                total += amount;
+            }
+
+            return (total, coupon, perCourse);
+        }
+
+        private CartSession? LoadCart()
+        {
+            var json = HttpContext.Session.GetString(SessionCartKey);
+            if (string.IsNullOrEmpty(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<CartSession>(json);
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Revenue Report";
+    ViewData["Title"] = "Sales Report";
     var monthly = (List<(DateTime Month, decimal Revenue)>)ViewBag.MonthlyRevenue;
     decimal totalRevenue = (decimal)ViewBag.TotalRevenue;
     var labels = monthly.Select(m => m.Month.ToString("MMM yyyy"));
@@ -10,8 +10,8 @@
 
 <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4 mt-2">
     <div>
-        <h2 class="section-title mb-1">Revenue Report</h2>
-        <p class="text-muted-2 mb-0">Total and monthly revenue from paid course transactions.</p>
+        <h2 class="section-title mb-1">Sales Report</h2>
+        <p class="text-muted-2 mb-0">Total and monthly sales from paid course transactions.</p>
     </div>
     <a asp-action="ExportRevenuePdf" class="btn btn-outline-primary">Export PDF</a>
 </div>
@@ -19,14 +19,14 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="stat-card stat-success">
-            <div class="stat-label">Total Revenue</div>
+            <div class="stat-label">Total Sales</div>
             <div class="stat-value">TK @totalRevenue.ToString("N2")</div>
         </div>
     </div>
 </div>
 
 <div class="card form-card">
-    <h5 class="mb-3">Monthly Revenue — Last 6 Months</h5>
+    <h5 class="mb-3">Monthly Sales — Last 6 Months</h5>
     <canvas id="revenueChart" height="90"></canvas>
 </div>
 
@@ -38,7 +38,7 @@
         data: {
             labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(labels)),
             datasets: [{
-                label: 'Revenue (TK)',
+                label: 'Sales (TK)',
                 data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(values)),
                 backgroundColor: '#1D4ED8'
             }]

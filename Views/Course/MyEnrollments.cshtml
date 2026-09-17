@@ -77,7 +77,7 @@ else
                                 }
                                 else
                                 {
-                                    <span class="status-pill pending">Free Preview</span>
+                                    <span class="status-pill pending">Payment Pending</span>
                                 }
                             }
                         </div>
@@ -104,7 +104,7 @@ else
                             <a asp-action="Certificate" asp-route-courseId="@enrollment.CourseId" class="btn btn-outline-success mb-2">Download Certificate</a>
                             @if (reviewedCourseIds.Contains(enrollment.CourseId))
                             {
-                                <span class="text-muted-2 small mb-2">You've reviewed this course</span>
+                                <a asp-action="EditReview" asp-route-courseId="@enrollment.CourseId" class="btn btn-outline-secondary mb-2">Edit Your Review</a>
                             }
                             else
                             {

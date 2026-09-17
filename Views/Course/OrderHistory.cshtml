@@ -24,6 +24,7 @@ else
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Order</th>
                     <th>Course</th>
                     <th>Transaction ID</th>
                     <th>Amount</th>
@@ -36,13 +37,24 @@ else
                 {
                     <tr>
                         <td>@payment.CreatedAt.ToString("MMM d, yyyy")</td>
+                        <td class="small text-muted-2">@(payment.OrderReference ?? "—")</td>
                         <td>@payment.Course.Title</td>
                         <td class="small text-muted-2">@payment.TransactionId</td>
-                        <td>TK @payment.Amount.ToString("0.00")</td>
+                        <td>
+                            TK @payment.Amount.ToString("0.00")
+                            @if (payment.DiscountAmount.HasValue && payment.DiscountAmount.Value > 0)
+                            {
+                                <div class="small text-muted-2">−TK @payment.DiscountAmount.Value.ToString("0.00") @(string.IsNullOrEmpty(payment.CouponCode) ? "" : $"({payment.CouponCode})")</div>
+                            }
+                        </td>
                         <td>
                             @if (payment.Status == EduLearn.Models.PaymentStatus.Success)
                             {
                                 <span class="status-pill approved">Success</span>
+                            }
+                            else if (payment.Status == EduLearn.Models.PaymentStatus.Refunded)
+                            {
+                                <span class="status-pill pending">Refunded</span>
                             }
                             else
                             {

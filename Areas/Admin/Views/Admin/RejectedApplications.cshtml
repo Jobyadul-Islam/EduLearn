@@ -1,0 +1,53 @@
+@model List<EduLearn.Models.RejectedApplicationArchive>
+
+@{
+    ViewData["Title"] = "Rejected Applications";
+}
+
+<a asp-action="Users" class="text-decoration-none small text-muted-2">← Back to Manage Users</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">Rejected Applications</h2>
+    <p class="text-muted-2">A historical record of instructor applications that were turned down. These accounts no longer exist — the same email can re-apply.</p>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Qualification</th>
+                <th>Applied</th>
+                <th>Rejected</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted-2 py-4">No rejected applications.</td>
+                </tr>
+            }
+            @foreach (var a in Model)
+            {
+                <tr>
+                    <td>@a.FullName</td>
+                    <td>@a.Email</td>
+                    <td>@(a.Qualification ?? "—")</td>
+                    <td>@a.AppliedAt.ToString("MMM d, yyyy")</td>
+                    <td>@a.RejectedAt.ToString("MMM d, yyyy")</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(a.ResumePath))
+                        {
+                            <span class="small text-muted-2">CV on file</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+</div>

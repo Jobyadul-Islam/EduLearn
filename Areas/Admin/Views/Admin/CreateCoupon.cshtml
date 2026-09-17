@@ -1,0 +1,32 @@
+@{
+    ViewData["Title"] = "Create Coupon";
+}
+
+<a asp-action="Coupons" class="text-decoration-none small text-muted-2">← Back to Coupons</a>
+
+<div class="mx-auto mt-2" style="max-width:480px;">
+    <h2 class="section-title mb-3">Create Coupon</h2>
+
+    <div class="card form-card">
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        <form method="post">
+            <div class="mb-3">
+                <label for="codeInput" class="form-label">Code</label>
+                <input id="codeInput" name="code" class="form-control text-uppercase" placeholder="e.g. SAVE20" value="@ViewBag.Code" required maxlength="20" />
+            </div>
+            <div class="mb-3">
+                <label for="discountInput" class="form-label">Discount Percent</label>
+                <input id="discountInput" name="discountPercent" type="number" min="1" max="100" class="form-control" value="@(ViewBag.DiscountPercent ?? 10)" required />
+            </div>
+            <div class="mb-3">
+                <label for="expiresInput" class="form-label">Expires On (optional)</label>
+                <input id="expiresInput" name="expiresAt" type="date" class="form-control" />
+            </div>
+            <div class="mb-4">
+                <label for="maxRedemptionsInput" class="form-label">Max Redemptions (optional)</label>
+                <input id="maxRedemptionsInput" name="maxRedemptions" type="number" min="1" class="form-control" placeholder="Unlimited" />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Create Coupon</button>
+        </form>
+    </div>
+</div>

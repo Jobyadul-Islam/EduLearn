@@ -20,14 +20,16 @@ namespace EduLearn.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly IEmailService _emailService;
         private readonly INotificationService _notificationService;
+        private readonly IFileUploadService _fileUploadService;
 
-        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment, IEmailService emailService, INotificationService notificationService)
+        public CourseController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment, IEmailService emailService, INotificationService notificationService, IFileUploadService fileUploadService)
         {
             _context = context;
             _userManager = userManager;
             _environment = environment;
             _emailService = emailService;
             _notificationService = notificationService;
+            _fileUploadService = fileUploadService;
         }
 
         private const int CoursesPerPage = 4;
@@ -131,7 +133,7 @@ namespace EduLearn.Controllers
                             join u in _context.Users on r.StudentId equals u.Id
                             where r.CourseId == id
                             orderby r.CreatedAt descending
-                            select new { r.Rating, r.Comment, r.CreatedAt, StudentName = u.FullName }).ToList();
+                            select new { r.Rating, r.Comment, r.CreatedAt, StudentName = u.FullName, r.InstructorReply, r.InstructorReplyAt }).ToList();
 
             ViewBag.Reviews = reviews;
             ViewBag.AverageRating = reviews.Count > 0 ? reviews.Average(r => r.Rating) : 0;
@@ -383,6 +385,69 @@ namespace EduLearn.Controllers
             return View(lesson);
         }
 
+        // Streams a lesson's video/file only after re-checking access — unlike a direct
+        // static-file link, this can't be shared/bookmarked to bypass enrollment, since the
+        // file no longer lives anywhere under wwwroot (see FileUploadService.SavePrivateFileAsync).
+        [Authorize]
+        public IActionResult LessonFile(int lessonId)
+        {
+            var lesson = _context.Lessons
+                .Include(l => l.Module)
+                .ThenInclude(m => m.Course)
+                .FirstOrDefault(l => l.Id == lessonId);
+
+            if (lesson == null || string.IsNullOrEmpty(lesson.FilePath)) return NotFound();
+
+            var courseId = lesson.Module.Course.Id;
+            var userId = _userManager.GetUserId(User);
+            var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            bool privilegedPreview = HasPrivilegedPreviewAccess();
+
+            if (enrollment == null && !privilegedPreview) return Forbid();
+
+            bool hasFullAccess = privilegedPreview || lesson.Module.Course.Price == 0 || enrollment?.Status == EnrollmentStatus.Active;
+            bool isFreePreview = GetFreePreviewLessonIds(courseId).Contains(lessonId);
+            if (!hasFullAccess && !isFreePreview) return Forbid();
+
+            var physicalPath = _fileUploadService.ResolvePrivateFilePath(lesson.FilePath, "lessons");
+            if (physicalPath == null) return NotFound();
+
+            var contentType = GetContentType(physicalPath);
+            return PhysicalFile(physicalPath, contentType, Path.GetFileName(physicalPath));
+        }
+
+        // Lets the submitting student, the course's instructor, or an Admin download a
+        // submitted assignment — the file lives in private storage, not under wwwroot.
+        [Authorize]
+        public IActionResult SubmissionFile(int submissionId)
+        {
+            var submission = _context.AssignmentSubmissions
+                .Include(s => s.Assignment).ThenInclude(a => a.Lesson).ThenInclude(l => l.Module).ThenInclude(m => m.Course)
+                .FirstOrDefault(s => s.Id == submissionId);
+
+            if (submission == null || string.IsNullOrEmpty(submission.FilePath)) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            var course = submission.Assignment.Lesson.Module.Course;
+            bool isOwner = submission.StudentId == userId;
+            bool isCourseInstructor = User.IsInRole("Instructor") && course.InstructorId == userId;
+            bool isAdmin = User.IsInRole("Admin");
+
+            if (!isOwner && !isCourseInstructor && !isAdmin) return Forbid();
+
+            var physicalPath = _fileUploadService.ResolvePrivateFilePath(submission.FilePath, "submissions");
+            if (physicalPath == null) return NotFound();
+
+            var contentType = GetContentType(physicalPath);
+            return PhysicalFile(physicalPath, contentType, Path.GetFileName(physicalPath));
+        }
+
+        private static string GetContentType(string physicalPath)
+        {
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            return provider.TryGetContentType(physicalPath, out var contentType) ? contentType : "application/octet-stream";
+        }
+
         [Authorize]
         [HttpPost]
         public IActionResult MarkComplete(int lessonId)
@@ -424,6 +489,12 @@ namespace EduLearn.Controllers
 
             if (quiz == null) return NotFound();
 
+            if (DateTime.Now > quiz.DueDate)
+            {
+                TempData["LessonError"] = $"The deadline for \"{quiz.Title}\" has passed — this quiz is no longer accepting attempts.";
+                return RedirectToAction("ViewLesson", new { id = quiz.LessonId });
+            }
+
             return View(quiz);
         }
 
@@ -437,6 +508,12 @@ namespace EduLearn.Controllers
                 .FirstOrDefault(q => q.Id == quizId);
 
             if (quiz == null) return NotFound();
+
+            if (DateTime.Now > quiz.DueDate)
+            {
+                TempData["LessonError"] = $"The deadline for \"{quiz.Title}\" has passed — this quiz is no longer accepting attempts.";
+                return RedirectToAction("ViewLesson", new { id = quiz.LessonId });
+            }
 
             var grade = QuizGrader.Grade(quiz, selectedOptionIds);
 
@@ -580,6 +657,41 @@ namespace EduLearn.Controllers
             return RedirectToAction("Details", new { id = courseId });
         }
 
+        [Authorize(Roles = "Student")]
+        public IActionResult EditReview(int courseId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var review = _context.Reviews.Include(r => r.Course).FirstOrDefault(r => r.CourseId == courseId && r.StudentId == userId);
+            if (review == null) return NotFound();
+
+            return View(review);
+        }
+
+        [Authorize(Roles = "Student")]
+        [HttpPost]
+        public IActionResult EditReview(int courseId, int rating, string? comment)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var review = _context.Reviews.FirstOrDefault(r => r.CourseId == courseId && r.StudentId == userId);
+            if (review == null) return NotFound();
+
+            if (rating < 1 || rating > 5)
+            {
+                TempData["ReviewError"] = "Choose a rating between 1 and 5 stars.";
+                return RedirectToAction("EditReview", new { courseId });
+            }
+
+            review.Rating = rating;
+            review.Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+            review.EditedAt = DateTime.Now;
+            _context.SaveChanges();
+
+            TempData["ReviewSuccess"] = "Your review was updated.";
+            return RedirectToAction("Details", new { id = courseId });
+        }
+
         private bool HasCompletedCourse(string userId, int courseId)
         {
             var totalLessons = _context.Lessons.Count(l => l.Module.CourseId == courseId);
@@ -596,6 +708,12 @@ namespace EduLearn.Controllers
             var assignment = _context.Assignments.Find(assignmentId);
             if (assignment == null) return NotFound();
 
+            if (DateTime.Now > assignment.DueDate)
+            {
+                TempData["LessonError"] = $"The deadline for \"{assignment.Title}\" has passed — submissions are no longer accepted.";
+                return RedirectToAction("ViewLesson", new { id = assignment.LessonId });
+            }
+
             ViewBag.AssignmentId = assignmentId;
             ViewBag.AssignmentTitle = assignment.Title;
             return View();
@@ -605,6 +723,15 @@ namespace EduLearn.Controllers
         [HttpPost]
         public async Task<IActionResult> SubmitAssignment(int assignmentId, IFormFile SubmissionFile)
         {
+            var dueDateCheck = _context.Assignments.Find(assignmentId);
+            if (dueDateCheck == null) return NotFound();
+
+            if (DateTime.Now > dueDateCheck.DueDate)
+            {
+                TempData["LessonError"] = $"The deadline for \"{dueDateCheck.Title}\" has passed — submissions are no longer accepted.";
+                return RedirectToAction("ViewLesson", new { id = dueDateCheck.LessonId });
+            }
+
             if (SubmissionFile == null || SubmissionFile.Length == 0)
             {
                 ModelState.AddModelError("", "Please select a file to submit.");
@@ -614,15 +741,19 @@ namespace EduLearn.Controllers
                 return View();
             }
 
-            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "submissions");
-            Directory.CreateDirectory(uploadsFolder);
-
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + SubmissionFile.FileName;
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            string savedPath;
+            try
             {
-                await SubmissionFile.CopyToAsync(stream);
+                savedPath = await _fileUploadService.SavePrivateFileAsync(
+                    SubmissionFile, "submissions", UploadPolicy.SubmissionExtensions, UploadPolicy.SubmissionMaxSizeBytes);
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                var assignment = _context.Assignments.Find(assignmentId);
+                ViewBag.AssignmentId = assignmentId;
+                ViewBag.AssignmentTitle = assignment.Title;
+                return View();
             }
 
             var userId = _userManager.GetUserId(User);
@@ -634,7 +765,7 @@ namespace EduLearn.Controllers
             if (existingSubmission != null)
             {
                 // Update the existing submission instead of creating a new one
-                existingSubmission.FilePath = "/uploads/submissions/" + uniqueFileName;
+                existingSubmission.FilePath = savedPath;
                 existingSubmission.SubmittedDate = DateTime.Now;
             }
             else
@@ -643,7 +774,7 @@ namespace EduLearn.Controllers
                 {
                     AssignmentId = assignmentId,
                     StudentId = userId,
-                    FilePath = "/uploads/submissions/" + uniqueFileName,
+                    FilePath = savedPath,
                     SubmittedDate = DateTime.Now
                 };
                 _context.AssignmentSubmissions.Add(submission);

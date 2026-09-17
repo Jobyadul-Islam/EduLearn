@@ -7,7 +7,8 @@ namespace EduLearn.Models
     public enum PaymentStatus
     {
         Success,
-        Failed
+        Failed,
+        Refunded
     }
 
     public class Payment
@@ -29,5 +30,17 @@ namespace EduLearn.Models
         public PaymentStatus Status { get; set; }
 
         public DateTime CreatedAt { get; set; }
+
+        // Shared by every Payment row created from the same checkout (cart purchases create
+        // one row per course but one shared bKash charge) — lets Order History group them
+        // back into a single order instead of showing unrelated-looking line items.
+        public string? OrderReference { get; set; }
+
+        // How much of this course's original price a coupon shaved off, if any — kept for
+        // transparent receipts even though Amount already reflects the discounted total.
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountAmount { get; set; }
+
+        public string? CouponCode { get; set; }
     }
 }

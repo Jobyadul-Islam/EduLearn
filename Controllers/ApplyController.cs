@@ -29,14 +29,16 @@ namespace EduLearn.Controllers
         private readonly INotificationService _notificationService;
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
+        private readonly IFileUploadService _fileUploadService;
 
-        public ApplyController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IWebHostEnvironment environment, IConfiguration configuration)
+        public ApplyController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificationService notificationService, IWebHostEnvironment environment, IConfiguration configuration, IFileUploadService fileUploadService)
         {
             _context = context;
             _userManager = userManager;
             _notificationService = notificationService;
             _environment = environment;
             _configuration = configuration;
+            _fileUploadService = fileUploadService;
         }
 
         // Step 1: choose Google or email to request access to the application form
@@ -140,9 +142,21 @@ namespace EduLearn.Controllers
                 return View();
             }
 
+            if (request.OtpAttempts >= InstructorAccessRequest.MaxOtpAttempts)
+            {
+                ModelState.AddModelError("", "Too many incorrect attempts. Contact the admin for a new invite.");
+                return View();
+            }
+
             if (string.IsNullOrWhiteSpace(code) || code != request.OtpCode)
             {
-                ModelState.AddModelError("", "That code is incorrect. Please check your email and try again.");
+                request.OtpAttempts++;
+                await _context.SaveChangesAsync();
+
+                var remaining = InstructorAccessRequest.MaxOtpAttempts - request.OtpAttempts;
+                ModelState.AddModelError("", remaining > 0
+                    ? $"That code is incorrect. Please check your email and try again ({remaining} attempt{(remaining == 1 ? "" : "s")} left)."
+                    : "Too many incorrect attempts. Contact the admin for a new invite.");
                 return View();
             }
 
@@ -195,13 +209,16 @@ namespace EduLearn.Controllers
                 return View(model);
             }
 
-            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "resumes");
-            Directory.CreateDirectory(uploadsFolder);
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + Resume!.FileName;
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            string resumePath;
+            try
             {
-                await Resume.CopyToAsync(stream);
+                resumePath = await _fileUploadService.SavePrivateFileAsync(
+                    Resume!, "resumes", UploadPolicy.ResumeExtensions, UploadPolicy.ResumeMaxSizeBytes);
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(model);
             }
 
             var user = new ApplicationUser
@@ -215,7 +232,7 @@ namespace EduLearn.Controllers
                 Skills = model.Skills,
                 YearsOfExperience = model.YearsOfExperience,
                 Bio = model.Bio,
-                ResumePath = "/uploads/resumes/" + uniqueFileName,
+                ResumePath = resumePath,
                 IsApproved = false,
                 IsActive = true
             };

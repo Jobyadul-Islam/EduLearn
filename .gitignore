@@ -3,5 +3,8 @@ obj/
 .vs/
 *.user
 .claude/settings.local.json
+.claude/settings.json
 appsettings.Local.json
 wwwroot/uploads/
+PrivateUploads/
+report_assets/__pycache__/

@@ -107,9 +107,30 @@ using (var scope = app.Services.CreateScope())
     }
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var adminEmail = app.Configuration["AdminSeed:Email"] ?? "admin@edulearn.com";
-    var adminPassword = app.Configuration["AdminSeed:Password"] ?? "ChangeMe123!";
-    if (await userManager.FindByEmailAsync(adminEmail) == null)
+    var adminEmail = app.Configuration["AdminSeed:Email"];
+    var adminPassword = app.Configuration["AdminSeed:Password"];
+    var seedLogger = app.Services.GetRequiredService<ILogger<Program>>();
+
+    // Outside Development, a real AdminSeed:Email/Password must be configured explicitly
+    // (e.g. via appsettings.Local.json or environment variables) — falling back to a
+    // known default like "ChangeMe123!" would mean every unconfigured deployment ships
+    // with a publicly-guessable admin password, since these fallbacks used to live in the
+    // committed appsettings.json.
+    if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+    {
+        if (app.Environment.IsDevelopment())
+        {
+            adminEmail ??= "admin@edulearn.com";
+            adminPassword ??= "ChangeMe123!";
+        }
+        else
+        {
+            seedLogger.LogWarning("AdminSeed:Email/Password are not configured — skipping admin account seeding. Set them explicitly (e.g. via environment variables) to create the initial admin account.");
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword)
+        && await userManager.FindByEmailAsync(adminEmail) == null)
     {
         var admin = new ApplicationUser
         {
@@ -123,6 +144,29 @@ using (var scope = app.Services.CreateScope())
         var result = await userManager.CreateAsync(admin, adminPassword);
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
+    }
+
+    // One-time move: files uploaded before private storage existed (lesson content, resumes,
+    // assignment submissions) are still sitting under wwwroot, publicly reachable by anyone
+    // with the URL. Relocate them to PrivateUploads now so the access-control fix in
+    // FileUploadService actually covers content that already exists, not just new uploads.
+    var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+    foreach (var subfolder in new[] { "lessons", "resumes", "submissions" })
+    {
+        var legacyFolder = Path.Combine(env.WebRootPath, "uploads", subfolder);
+        if (!Directory.Exists(legacyFolder)) continue;
+
+        var privateFolder = Path.Combine(env.ContentRootPath, "PrivateUploads", subfolder);
+        Directory.CreateDirectory(privateFolder);
+
+        foreach (var file in Directory.GetFiles(legacyFolder))
+        {
+            var destination = Path.Combine(privateFolder, Path.GetFileName(file));
+            if (!File.Exists(destination))
+            {
+                File.Move(file, destination);
+            }
+        }
     }
 }
 

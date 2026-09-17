@@ -24,6 +24,10 @@
                     <input type="number" id="timeLimitInput" name="TimeLimitMinutes" class="form-control" min="1" value="@Model.TimeLimitMinutes" />
                 </div>
             </div>
+            <div class="mt-3">
+                <label for="dueDateInput" class="form-label">Due Date</label>
+                <input type="datetime-local" id="dueDateInput" name="DueDate" class="form-control" value="@Model.DueDate.ToString("yyyy-MM-ddTHH:mm")" />
+            </div>
             <p class="small text-muted-2 mt-2 mb-0">A student's pass/fail result on this quiz doesn't affect their course progress — they can still complete the course and earn their certificate regardless.</p>
         </div>
 

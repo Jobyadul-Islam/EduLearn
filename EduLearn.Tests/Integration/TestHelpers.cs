@@ -47,6 +47,18 @@ namespace EduLearn.Tests.Integration
             return mock;
         }
 
+        public static Mock<IFileUploadService> CreateFakeFileUploadService()
+        {
+            var mock = new Mock<IFileUploadService>();
+            mock.Setup(m => m.SavePrivateFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>(), It.IsAny<string[]>(), It.IsAny<long>()))
+                .ReturnsAsync("/uploads/test/fake-file.dat");
+            mock.Setup(m => m.SaveImageAsync(It.IsAny<IFormFile>(), It.IsAny<string>()))
+                .ReturnsAsync("/uploads/test/fake-image.jpg");
+            mock.Setup(m => m.ResolvePrivateFilePath(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string _, string _) => null);
+            return mock;
+        }
+
         /// <summary>
         /// Wires up HttpContext/TempData on a controller so actions that read TempData
         /// (e.g. TempData["CertificateError"]) don't throw outside a real request pipeline.

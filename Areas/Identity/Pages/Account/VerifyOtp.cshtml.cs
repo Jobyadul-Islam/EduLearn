@@ -66,9 +66,15 @@ namespace EduLearn.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            // OTP verified — only now does the picture ever touch disk.
-            var pictureBytes = Convert.FromBase64String(pending.ProfilePictureBase64);
-            var profilePicturePath = await _fileUploadService.SaveImageAsync(pictureBytes, pending.ProfilePictureExtension, "profiles");
+            // OTP verified — only now does the picture ever touch disk. No picture was
+            // chosen at all is a normal case now; ProfilePicture just stays null and the
+            // nav/profile views fall back to the default avatar, same as any other user.
+            string? profilePicturePath = null;
+            if (!string.IsNullOrEmpty(pending.ProfilePictureBase64))
+            {
+                var pictureBytes = Convert.FromBase64String(pending.ProfilePictureBase64);
+                profilePicturePath = await _fileUploadService.SaveImageAsync(pictureBytes, pending.ProfilePictureExtension, "profiles");
+            }
 
             var user = new ApplicationUser
             {
@@ -82,7 +88,7 @@ namespace EduLearn.Areas.Identity.Pages.Account
             var result = await _userManager.CreateAsync(user, pending.Password);
             if (!result.Succeeded)
             {
-                _fileUploadService.DeleteImage(profilePicturePath); // NEW — don't leave an orphaned file behind
+                if (profilePicturePath != null) _fileUploadService.DeleteImage(profilePicturePath); // NEW — don't leave an orphaned file behind
                 HttpContext.Session.Remove(RegisterModel.SessionKey);
                 foreach (var error in result.Errors)
                     ModelState.AddModelError(string.Empty, error.Description);
@@ -102,7 +108,7 @@ namespace EduLearn.Areas.Identity.Pages.Account
             var pending = LoadPending();
             if (pending == null) return RedirectToPage("./Register");
 
-            pending.Otp = new Random().Next(0, 1000000).ToString("D6");
+            pending.Otp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
             pending.ExpiresAt = DateTime.Now.AddMinutes(10);
             HttpContext.Session.SetString(RegisterModel.SessionKey, JsonSerializer.Serialize(pending));
 

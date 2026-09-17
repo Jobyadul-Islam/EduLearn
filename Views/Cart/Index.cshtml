@@ -1,0 +1,114 @@
+@model List<EduLearn.Models.Enrollment>
+
+@{
+    ViewData["Title"] = "My Cart";
+    var subtotal = (decimal)ViewBag.Subtotal;
+    var coupon = ViewBag.Coupon as EduLearn.Models.Coupon;
+    var discount = (decimal)ViewBag.Discount;
+    var total = (decimal)ViewBag.Total;
+    var couponError = TempData["CouponError"] as string ?? ViewBag.CouponMessage as string;
+    var paymentError = TempData["PaymentError"] as string;
+    var dangerType = "danger";
+}
+
+@section Toasts {
+    @if (couponError != null)
+    {
+        <partial name="_Toast" model="(couponError, dangerType)" />
+    }
+    @if (paymentError != null)
+    {
+        <partial name="_Toast" model="(paymentError, dangerType)" />
+    }
+}
+
+<div class="mb-4">
+    <h2 class="section-title">My Cart</h2>
+    <p class="text-muted-2">Courses you've enrolled in but haven't paid for yet. Pay for several at once here.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <p class="mb-3">Your cart is empty — enroll in a paid course to see it here.</p>
+        <a asp-controller="Course" asp-action="Index" class="btn btn-primary">Browse Courses</a>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-lg-8">
+            @foreach (var enrollment in Model)
+            {
+                <div class="card mb-2">
+                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <span class="code-badge me-2">@enrollment.Course.CourseCode</span>
+                            <a asp-controller="Course" asp-action="Details" asp-route-id="@enrollment.CourseId" class="fw-semibold text-decoration-none">@enrollment.Course.Title</a>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <strong>TK @enrollment.Course.Price</strong>
+                            <form asp-action="RemoveFromCart" method="post">
+                                <input type="hidden" name="courseId" value="@enrollment.CourseId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card" style="position:sticky; top:1rem;">
+                <div class="card-body">
+                    <h5 class="mb-3">Order Summary</h5>
+
+                    @if (coupon != null)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">Coupon <strong>@coupon.Code</strong> (@coupon.DiscountPercent% off)</span>
+                            <form asp-action="RemoveCoupon" method="post">
+                                <button type="submit" class="btn btn-link btn-sm p-0 text-danger">Remove</button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="ApplyCoupon" method="post" class="d-flex gap-2 mb-3">
+                            <label for="couponInput" class="visually-hidden">Coupon code</label>
+                            <input id="couponInput" name="code" class="form-control form-control-sm text-uppercase" placeholder="Coupon code" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Apply</button>
+                        </form>
+                    }
+
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted-2">Subtotal</span>
+                        <span>TK @subtotal</span>
+                    </div>
+                    @if (discount > 0)
+                    {
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted-2">Discount</span>
+                            <span>−TK @discount</span>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-between border-top pt-2 mt-2 mb-3">
+                        <strong>Total</strong>
+                        <strong>TK @total</strong>
+                    </div>
+
+                    <form asp-controller="Bkash" asp-action="Pay" method="post">
+                        @foreach (var enrollment in Model)
+                        {
+                            <input type="hidden" name="courseIds" value="@enrollment.CourseId" />
+                        }
+                        <button type="submit" class="btn btn-success w-100">
+                            @(total <= 0 ? "Complete Order" : $"Pay with bKash — TK {total}")
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

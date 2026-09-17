@@ -52,7 +52,7 @@
         <dd class="col-sm-9">
             @if (!string.IsNullOrEmpty(Model.ResumePath))
             {
-                <a href="@Model.ResumePath" target="_blank" class="btn btn-sm btn-outline-primary">Download CV</a>
+                <a asp-action="DownloadResume" asp-route-id="@Model.Id" target="_blank" class="btn btn-sm btn-outline-primary">Download CV</a>
             }
             else
             {

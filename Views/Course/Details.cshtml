@@ -138,6 +138,13 @@
                         {
                             <p class="mb-0 small">@review.Comment</p>
                         }
+                        @if (!string.IsNullOrWhiteSpace(review.InstructorReply))
+                        {
+                            <div class="mt-2 ps-3 border-start">
+                                <div class="small fw-semibold">Instructor reply</div>
+                                <p class="mb-0 small text-muted-2">@review.InstructorReply</p>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -168,7 +175,7 @@
                         }
                         else
                         {
-                            <div class="alert alert-warning text-center">Enrolled — free preview only</div>
+                            <div class="alert alert-warning text-center">Enrolled — payment pending (free preview only until you pay)</div>
                             <a asp-action="Checkout" asp-route-courseId="@Model.Id" class="btn btn-success w-100 mb-2">Unlock Full Course — TK @Model.Price</a>
                         }
                         <a asp-action="MyEnrollments" class="btn btn-outline-primary w-100">Go to My Enrollments</a>

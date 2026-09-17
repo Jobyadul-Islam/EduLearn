@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace EduLearn.Models
@@ -9,6 +10,7 @@ namespace EduLearn.Models
         public string Title { get; set; }
         public int PassMarkPercentage { get; set; } = 60;
         public int TimeLimitMinutes { get; set; } = 10;
+        public DateTime DueDate { get; set; }
         public int LessonId { get; set; }
 
         [ValidateNever]

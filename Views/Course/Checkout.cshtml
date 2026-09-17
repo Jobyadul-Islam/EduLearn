@@ -30,11 +30,12 @@
         </div>
 
         <form asp-controller="Bkash" asp-action="Pay" method="post">
-            <input type="hidden" name="courseId" value="@Model.Id" />
+            <input type="hidden" name="courseIds" value="@Model.Id" />
             <button type="submit" class="btn btn-success w-100">
                 Pay with bKash — TK @Model.Price
             </button>
         </form>
+        <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary w-100 mt-2">Pay for this with other courses in my cart</a>
         <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link w-100 mt-2">Cancel</a>
     </div>
 </div>

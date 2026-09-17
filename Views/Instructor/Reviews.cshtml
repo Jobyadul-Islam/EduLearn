@@ -99,8 +99,21 @@ else
                 </div>
                 @if (!string.IsNullOrWhiteSpace((string)review.Comment))
                 {
-                    <p class="mb-0 small">@review.Comment</p>
+                    <p class="mb-2 small">@review.Comment</p>
                 }
+                @if (!string.IsNullOrWhiteSpace((string)review.InstructorReply))
+                {
+                    <div class="mb-2 ps-3 border-start">
+                        <div class="small fw-semibold">Your reply</div>
+                        <p class="mb-0 small text-muted-2">@review.InstructorReply</p>
+                    </div>
+                }
+                <form asp-action="ReplyToReview" method="post" class="d-flex gap-2 align-items-start mt-2">
+                    <input type="hidden" name="reviewId" value="@review.Id" />
+                    <label class="visually-hidden" for="reply-@review.Id">Reply to this review</label>
+                    <textarea id="reply-@review.Id" name="reply" class="form-control form-control-sm" rows="1" placeholder="Reply to this review...">@review.InstructorReply</textarea>
+                    <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">@(string.IsNullOrWhiteSpace((string)review.InstructorReply) ? "Reply" : "Update")</button>
+                </form>
             </div>
         </div>
     }

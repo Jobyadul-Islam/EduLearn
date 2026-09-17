@@ -1,0 +1,90 @@
+@model List<EduLearn.Models.Payment>
+
+@{
+    ViewData["Title"] = "Payments";
+    var names = (Dictionary<string, string>)ViewBag.StudentNamesById;
+    var emailResult = TempData["EmailResult"] as string;
+    var infoType = "info";
+}
+
+@section Toasts {
+    @if (emailResult != null)
+    {
+        <partial name="_Toast" model="(emailResult, infoType)" />
+    }
+}
+
+<a asp-action="Index" class="text-decoration-none small text-muted-2">← Back to Dashboard</a>
+
+<div class="mb-4 mt-2">
+    <h2 class="section-title mb-1">Payments</h2>
+    <p class="text-muted-2">Every payment ever recorded. Refunding revokes the student's full-course access immediately.</p>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Course</th>
+                <th>Amount</th>
+                <th>Transaction ID</th>
+                <th>Order</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center text-muted-2 py-4">No payments yet.</td>
+                </tr>
+            }
+            @foreach (var payment in Model)
+            {
+                <tr>
+                    <td>@(names.TryGetValue(payment.StudentId, out var n) ? n : "—")</td>
+                    <td>
+                        <a asp-controller="Course" asp-action="Details" asp-route-id="@payment.CourseId" asp-area="" target="_blank" class="text-decoration-none">@payment.Course?.Title</a>
+                    </td>
+                    <td>
+                        TK @payment.Amount
+                        @if (payment.DiscountAmount.HasValue && payment.DiscountAmount.Value > 0)
+                        {
+                            <div class="small text-muted-2">−TK @payment.DiscountAmount @(string.IsNullOrEmpty(payment.CouponCode) ? "" : $"({payment.CouponCode})")</div>
+                        }
+                    </td>
+                    <td class="small text-muted-2">@payment.TransactionId</td>
+                    <td class="small text-muted-2">@(payment.OrderReference ?? "—")</td>
+                    <td>@payment.CreatedAt.ToString("MMM d, yyyy")</td>
+                    <td>
+                        @if (payment.Status == EduLearn.Models.PaymentStatus.Success)
+                        {
+                            <span class="status-pill approved">Success</span>
+                        }
+                        else if (payment.Status == EduLearn.Models.PaymentStatus.Refunded)
+                        {
+                            <span class="status-pill pending">Refunded</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill rejected">Failed</span>
+                        }
+                    </td>
+                    <td>
+                        @if (payment.Status == EduLearn.Models.PaymentStatus.Success)
+                        {
+                            <form asp-action="RefundPayment" asp-route-id="@payment.Id" method="post" onsubmit="return confirm('Refund this payment and revoke the student\'s access?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Refund</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+</div>

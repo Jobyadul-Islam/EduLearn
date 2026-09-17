@@ -17,12 +17,14 @@ namespace EduLearn.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IWebHostEnvironment _environment;
+        private readonly IFileUploadService _fileUploadService;
 
-        public InstructorController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
+        public InstructorController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment, IFileUploadService fileUploadService)
         {
             _context = context;
             _userManager = userManager;
             _environment = environment;
+            _fileUploadService = fileUploadService;
         }
 
         // ---------------- Dashboard ----------------
@@ -76,16 +78,16 @@ namespace EduLearn.Controllers
 
             if (Thumbnail != null && Thumbnail.Length > 0)
             {
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "thumbnails");
-                var uniqueFileName = Guid.NewGuid().ToString() + "_" + Thumbnail.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                try
                 {
-                    await Thumbnail.CopyToAsync(stream);
+                    course.ThumbnailPath = await _fileUploadService.SaveImageAsync(Thumbnail, "thumbnails");
                 }
-
-                course.ThumbnailPath = "/uploads/thumbnails/" + uniqueFileName;
+                catch (InvalidOperationException ex)
+                {
+                    ModelState.AddModelError(nameof(Thumbnail), ex.Message);
+                    ViewBag.Categories = _context.Categories.ToList();
+                    return View(course);
+                }
             }
 
             _context.Courses.Add(course);
@@ -147,16 +149,16 @@ namespace EduLearn.Controllers
 
             if (Thumbnail != null && Thumbnail.Length > 0)
             {
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "thumbnails");
-                var uniqueFileName = Guid.NewGuid().ToString() + "_" + Thumbnail.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                try
                 {
-                    await Thumbnail.CopyToAsync(stream);
+                    existing.ThumbnailPath = await _fileUploadService.SaveImageAsync(Thumbnail, "thumbnails");
                 }
-
-                existing.ThumbnailPath = "/uploads/thumbnails/" + uniqueFileName;
+                catch (InvalidOperationException ex)
+                {
+                    ModelState.AddModelError(nameof(Thumbnail), ex.Message);
+                    ViewBag.Categories = _context.Categories.ToList();
+                    return View(course);
+                }
             }
 
             _context.SaveChanges();
@@ -201,11 +203,13 @@ namespace EduLearn.Controllers
                                 where myCourseIds.Contains(r.CourseId)
                                 select new
                                 {
+                                    r.Id,
                                     r.Rating,
                                     r.Comment,
                                     r.CreatedAt,
                                     StudentName = u.FullName,
-                                    r.CourseId
+                                    r.CourseId,
+                                    r.InstructorReply
                                 };
 
             if (courseId.HasValue)
@@ -218,10 +222,12 @@ namespace EduLearn.Controllers
                 .ToList()
                 .Select(r => new
                 {
+                    r.Id,
                     r.Rating,
                     r.Comment,
                     r.CreatedAt,
                     r.StudentName,
+                    r.InstructorReply,
                     CourseTitle = myCourses.First(c => c.Id == r.CourseId).Title
                 })
                 .ToList();
@@ -248,6 +254,24 @@ namespace EduLearn.Controllers
             ViewBag.SelectedCourseId = courseId;
 
             return View(reviews);
+        }
+
+        [HttpPost]
+        public IActionResult ReplyToReview(int reviewId, string reply)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // Only the instructor who owns the reviewed course may reply.
+            var review = _context.Reviews
+                .Include(r => r.Course)
+                .FirstOrDefault(r => r.Id == reviewId && r.Course.InstructorId == userId);
+            if (review == null) return NotFound();
+
+            review.InstructorReply = string.IsNullOrWhiteSpace(reply) ? null : reply.Trim();
+            review.InstructorReplyAt = review.InstructorReply != null ? DateTime.Now : null;
+            _context.SaveChanges();
+
+            return RedirectToAction("Reviews", new { courseId = review.CourseId });
         }
 
         // ---------------- Quiz Results ----------------
@@ -396,18 +420,17 @@ namespace EduLearn.Controllers
 
             if (LessonFile != null && LessonFile.Length > 0)
             {
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "lessons");
-                Directory.CreateDirectory(uploadsFolder); // ensures folder exists
-
-                var uniqueFileName = Guid.NewGuid().ToString() + "_" + LessonFile.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                try
                 {
-                    await LessonFile.CopyToAsync(stream);
+                    lesson.FilePath = await _fileUploadService.SavePrivateFileAsync(
+                        LessonFile, "lessons", UploadPolicy.LessonExtensions, UploadPolicy.LessonMaxSizeBytes);
                 }
-
-                lesson.FilePath = "/uploads/lessons/" + uniqueFileName;
+                catch (InvalidOperationException ex)
+                {
+                    ModelState.AddModelError(nameof(LessonFile), ex.Message);
+                    ViewBag.ModuleId = lesson.ModuleId;
+                    return View(lesson);
+                }
             }
 
             _context.Lessons.Add(lesson);
@@ -485,6 +508,7 @@ namespace EduLearn.Controllers
                 LessonId = model.LessonId,
                 PassMarkPercentage = Math.Clamp(model.PassMarkPercentage, 0, 100),
                 TimeLimitMinutes = Math.Max(model.TimeLimitMinutes, 1),
+                DueDate = model.DueDate,
                 Questions = new List<QuizQuestion>()
             };
 

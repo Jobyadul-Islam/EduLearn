@@ -1,0 +1,78 @@
+@model EduLearn.Models.Review
+
+@{
+    ViewData["Title"] = "Edit Your Review";
+    var reviewError = TempData["ReviewError"] as string;
+    var dangerType = "danger";
+}
+
+@section Toasts {
+    @if (reviewError != null)
+    {
+        <partial name="_Toast" model="(reviewError, dangerType)" />
+    }
+}
+
+<style>
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 4px;
+    }
+
+    .star-rating input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+    }
+
+    .star-rating label {
+        font-size: 2.5rem;
+        line-height: 1;
+        color: var(--color-star-empty);
+        cursor: pointer;
+    }
+
+    .star-rating input:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+        color: var(--color-accent-gold);
+    }
+
+    .star-rating input:focus-visible + label {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="mx-auto" style="max-width:520px;">
+    <h2 class="section-title mb-1">Edit Your Review</h2>
+    <p class="text-muted-2 mb-4">Update your review for <strong>@Model.Course.Title</strong>.</p>
+
+    <div class="card form-card">
+        <form asp-action="EditReview" method="post">
+            <input type="hidden" name="courseId" value="@Model.CourseId" />
+
+            <fieldset class="mb-4">
+                <legend class="form-label d-block">Your Rating</legend>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" required checked="@(Model.Rating == 5)" /><label for="star5"><span aria-hidden="true">★</span><span class="visually-hidden">5 stars</span></label>
+                    <input type="radio" id="star4" name="rating" value="4" checked="@(Model.Rating == 4)" /><label for="star4"><span aria-hidden="true">★</span><span class="visually-hidden">4 stars</span></label>
+                    <input type="radio" id="star3" name="rating" value="3" checked="@(Model.Rating == 3)" /><label for="star3"><span aria-hidden="true">★</span><span class="visually-hidden">3 stars</span></label>
+                    <input type="radio" id="star2" name="rating" value="2" checked="@(Model.Rating == 2)" /><label for="star2"><span aria-hidden="true">★</span><span class="visually-hidden">2 stars</span></label>
+                    <input type="radio" id="star1" name="rating" value="1" checked="@(Model.Rating == 1)" /><label for="star1"><span aria-hidden="true">★</span><span class="visually-hidden">1 star</span></label>
+                </div>
+            </fieldset>
+
+            <div class="mb-4">
+                <label for="commentInput" class="form-label">Comment (optional)</label>
+                <textarea id="commentInput" name="comment" class="form-control" rows="4" placeholder="What did you think of this course?">@Model.Comment</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        </form>
+    </div>
+</div>
