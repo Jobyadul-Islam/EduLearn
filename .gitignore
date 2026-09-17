@@ -7,4 +7,10 @@ obj/
 appsettings.Local.json
 wwwroot/uploads/
 PrivateUploads/
-report_assets/__pycache__/
+
+# Practicum defense prep materials — personal, not part of the application
+EduLearn_Practicum_Report.docx
+PAGE_BY_PAGE_GUIDE.md
+Practicum_Certificate.png
+Report.pdf
+report_assets/
