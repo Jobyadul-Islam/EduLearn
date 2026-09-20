@@ -34,7 +34,6 @@ namespace EduLearn.Controllers
         private class CartSession
         {
             public List<int> CourseIds { get; set; } = new();
-            public string? CouponCode { get; set; }
         }
 
         // Called both by the single-course "Unlock Full Course" button (courseIds has one
@@ -56,15 +55,7 @@ namespace EduLearn.Controllers
                 return RedirectToAction("Index", "Cart");
             }
 
-            var couponCode = HttpContext.Session.GetString(CartController.SessionCouponKey);
-            var (total, _, _) = ComputeTotal(enrollments.Select(e => e.Course).ToList(), couponCode, userId!);
-
-            if (total <= 0)
-            {
-                CompleteOrder(enrollments, couponCode, userId!, transactionId: $"COUPON-{DateTime.Now:yyyyMMddHHmmssfff}");
-                TempData["PaymentSuccess"] = "Your order is complete — the coupon covered the full amount.";
-                return RedirectToAction("MyEnrollments", "Course");
-            }
+            var total = ComputeTotal(enrollments.Select(e => e.Course).ToList());
 
             if (!_bkash.IsConfigured)
             {
@@ -88,7 +79,7 @@ namespace EduLearn.Controllers
                 return RedirectToAction("Index", "Cart");
             }
 
-            var cart = new CartSession { CourseIds = enrollments.Select(e => e.CourseId).ToList(), CouponCode = couponCode };
+            var cart = new CartSession { CourseIds = enrollments.Select(e => e.CourseId).ToList() };
             HttpContext.Session.SetString(SessionCartKey, JsonSerializer.Serialize(cart));
 
             return Redirect(agreement.BkashUrl!);
@@ -123,7 +114,7 @@ namespace EduLearn.Controllers
 
             var userId = _userManager.GetUserId(User);
             var courses = _context.Courses.Where(c => cart.CourseIds.Contains(c.Id)).ToList();
-            var (total, _, _) = ComputeTotal(courses, cart.CouponCode, userId!);
+            var total = ComputeTotal(courses);
 
             var callbackUrl = Url.Action("PaymentCallback", "Bkash", null, Request.Scheme);
             var invoiceNumber = $"ORD-{DateTime.Now:yyyyMMddHHmmssfff}";
@@ -153,11 +144,10 @@ namespace EduLearn.Controllers
             if (enrollments.Count == 0) return RedirectToAction("Index", "Course");
 
             var invoiceNumber = $"ORD-{DateTime.Now:yyyyMMddHHmmssfff}";
-            var (_, coupon, perCourseAmounts) = ComputeTotal(enrollments.Select(e => e.Course).ToList(), cart.CouponCode, userId!);
 
             if (!string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
             {
-                RecordFailedPayments(enrollments, perCourseAmounts, paymentID, invoiceNumber, userId!);
+                RecordFailedPayments(enrollments, paymentID, invoiceNumber, userId!);
                 TempData["PaymentError"] = $"bKash payment was not completed ({status}).";
                 return RedirectToAction("Index", "Cart");
             }
@@ -167,18 +157,18 @@ namespace EduLearn.Controllers
 
             if (!executed.Success)
             {
-                RecordFailedPayments(enrollments, perCourseAmounts, paymentID, invoiceNumber, userId!);
+                RecordFailedPayments(enrollments, paymentID, invoiceNumber, userId!);
                 TempData["PaymentError"] = executed.ErrorMessage ?? "Could not confirm the bKash payment.";
                 return RedirectToAction("Index", "Cart");
             }
 
-            CompleteOrder(enrollments, userId!, perCourseAmounts, executed.TrxId ?? paymentID, invoiceNumber, coupon);
+            CompleteOrder(enrollments, userId!, executed.TrxId ?? paymentID, invoiceNumber);
 
             TempData["PaymentSuccess"] = $"Payment successful via bKash — order {invoiceNumber}.";
             return RedirectToAction("MyEnrollments", "Course");
         }
 
-        private void RecordFailedPayments(List<Enrollment> enrollments, Dictionary<int, decimal> perCourseAmounts, string transactionId, string orderReference, string userId)
+        private void RecordFailedPayments(List<Enrollment> enrollments, string transactionId, string orderReference, string userId)
         {
             foreach (var e in enrollments)
             {
@@ -186,7 +176,7 @@ namespace EduLearn.Controllers
                 {
                     StudentId = userId,
                     CourseId = e.CourseId,
-                    Amount = perCourseAmounts.GetValueOrDefault(e.CourseId, e.Course.Price),
+                    Amount = e.Course.Price,
                     TransactionId = transactionId,
                     Status = PaymentStatus.Failed,
                     CreatedAt = DateTime.Now,
@@ -196,76 +186,32 @@ namespace EduLearn.Controllers
             _context.SaveChanges();
         }
 
-        // Free-after-coupon path (total == 0) — no bKash involved, just fulfill the order directly.
-        private void CompleteOrder(List<Enrollment> enrollments, string? couponCode, string userId, string transactionId)
+        private void CompleteOrder(List<Enrollment> enrollments, string userId, string transactionId, string orderReference)
         {
-            var (_, coupon, perCourseAmounts) = ComputeTotal(enrollments.Select(e => e.Course).ToList(), couponCode, userId);
-            CompleteOrder(enrollments, userId, perCourseAmounts, transactionId, transactionId, coupon);
-        }
-
-        private void CompleteOrder(List<Enrollment> enrollments, string userId, Dictionary<int, decimal> perCourseAmounts, string transactionId, string orderReference, Coupon? coupon)
-        {
-            decimal totalDiscount = 0;
-
             foreach (var e in enrollments)
             {
-                var amount = perCourseAmounts.GetValueOrDefault(e.CourseId, e.Course.Price);
-                var discount = e.Course.Price - amount;
-                if (discount > 0) totalDiscount += discount;
-
                 _context.Payments.Add(new Payment
                 {
                     StudentId = userId,
                     CourseId = e.CourseId,
-                    Amount = amount,
+                    Amount = e.Course.Price,
                     TransactionId = transactionId,
                     Status = PaymentStatus.Success,
                     CreatedAt = DateTime.Now,
-                    OrderReference = orderReference,
-                    DiscountAmount = discount > 0 ? discount : null,
-                    CouponCode = coupon?.Code
+                    OrderReference = orderReference
                 });
 
                 e.Status = EnrollmentStatus.Active;
                 e.PaymentDate = DateTime.Now;
             }
 
-            if (coupon != null)
-            {
-                _context.CouponRedemptions.Add(new CouponRedemption
-                {
-                    CouponId = coupon.Id,
-                    StudentId = userId,
-                    OrderReference = orderReference,
-                    DiscountAmount = totalDiscount
-                });
-                coupon.TimesRedeemed++;
-            }
-
             _context.SaveChanges();
-            HttpContext.Session.Remove(CartController.SessionCouponKey);
         }
 
-        // Re-validates the coupon and re-prices every course from the database — never
-        // trusts a total computed earlier in the flow, since coupon validity (redemption
-        // limits especially) can change between initiating payment and the callback.
-        private (decimal Total, Coupon? Coupon, Dictionary<int, decimal> PerCourseAmounts) ComputeTotal(List<Course> courses, string? couponCode, string userId)
-        {
-            var (coupon, _) = CouponService.Validate(_context, couponCode, userId);
-            var perCourse = new Dictionary<int, decimal>();
-            decimal total = 0;
-
-            foreach (var course in courses)
-            {
-                var amount = coupon != null
-                    ? Math.Round(course.Price * (100 - coupon.DiscountPercent) / 100m, 2)
-                    : course.Price;
-                perCourse[course.Id] = amount;
-                total += amount;
-            }
-
-            return (total, coupon, perCourse);
-        }
+        // Re-prices every course from the database at the callback — never trusts a total
+        // computed earlier in the flow, since a course's price could change between
+        // initiating payment and the callback.
+        private decimal ComputeTotal(List<Course> courses) => courses.Sum(c => c.Price);
 
         private CartSession? LoadCart()
         {

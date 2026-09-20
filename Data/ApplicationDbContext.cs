@@ -27,8 +27,6 @@ namespace EduLearn.Data
         public DbSet<AssignmentReminder> AssignmentReminders { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<RejectedApplicationArchive> RejectedApplicationArchives { get; set; }
-        public DbSet<Coupon> Coupons { get; set; }
-        public DbSet<CouponRedemption> CouponRedemptions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -190,29 +188,6 @@ namespace EduLearn.Data
                 .WithMany()
                 .HasForeignKey(r => r.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            builder.Entity<Coupon>()
-                .HasIndex(c => c.Code)
-                .IsUnique();
-
-            builder.Entity<CouponRedemption>()
-                .HasOne(r => r.Coupon)
-                .WithMany(c => c.Redemptions)
-                .HasForeignKey(r => r.CouponId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<CouponRedemption>()
-                .HasOne<ApplicationUser>()
-                .WithMany()
-                .HasForeignKey(r => r.StudentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // The actual enforcement of "one redemption per student per coupon" — the
-            // application-level check in CartController is just to fail fast with a
-            // friendly message before hitting this constraint.
-            builder.Entity<CouponRedemption>()
-                .HasIndex(r => new { r.CouponId, r.StudentId })
-                .IsUnique();
         }
     }
 }

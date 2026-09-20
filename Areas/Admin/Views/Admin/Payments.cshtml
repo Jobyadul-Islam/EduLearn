@@ -50,13 +50,7 @@
                     <td>
                         <a asp-controller="Course" asp-action="Details" asp-route-id="@payment.CourseId" asp-area="" target="_blank" class="text-decoration-none">@payment.Course?.Title</a>
                     </td>
-                    <td>
-                        TK @payment.Amount
-                        @if (payment.DiscountAmount.HasValue && payment.DiscountAmount.Value > 0)
-                        {
-                            <div class="small text-muted-2">−TK @payment.DiscountAmount @(string.IsNullOrEmpty(payment.CouponCode) ? "" : $"({payment.CouponCode})")</div>
-                        }
-                    </td>
+                    <td>TK @payment.Amount</td>
                     <td class="small text-muted-2">@payment.TransactionId</td>
                     <td class="small text-muted-2">@(payment.OrderReference ?? "—")</td>
                     <td>@payment.CreatedAt.ToString("MMM d, yyyy")</td>

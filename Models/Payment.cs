@@ -35,12 +35,5 @@ namespace EduLearn.Models
         // one row per course but one shared bKash charge) — lets Order History group them
         // back into a single order instead of showing unrelated-looking line items.
         public string? OrderReference { get; set; }
-
-        // How much of this course's original price a coupon shaved off, if any — kept for
-        // transparent receipts even though Amount already reflects the discounted total.
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal? DiscountAmount { get; set; }
-
-        public string? CouponCode { get; set; }
     }
 }
