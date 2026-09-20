@@ -489,6 +489,16 @@ namespace EduLearn.Controllers
 
             if (quiz == null) return NotFound();
 
+            var userId = _userManager.GetUserId(User);
+
+            // One attempt per student per quiz — a student who already has a result can
+            // only ever view it, never re-enter the quiz form, even by hitting this URL
+            // directly after the "Take Quiz" button has stopped being shown.
+            if (_context.QuizResults.Any(r => r.QuizId == quizId && r.StudentId == userId))
+            {
+                return RedirectToAction("QuizResult", new { quizId });
+            }
+
             if (DateTime.Now > quiz.DueDate)
             {
                 TempData["LessonError"] = $"The deadline for \"{quiz.Title}\" has passed — this quiz is no longer accepting attempts.";
@@ -509,6 +519,15 @@ namespace EduLearn.Controllers
 
             if (quiz == null) return NotFound();
 
+            var userId = _userManager.GetUserId(User);
+
+            // Re-checked independently of TakeQuiz — a crafted POST straight to this
+            // endpoint must not be able to overwrite a result that already exists.
+            if (_context.QuizResults.Any(r => r.QuizId == quizId && r.StudentId == userId))
+            {
+                return RedirectToAction("QuizResult", new { quizId });
+            }
+
             if (DateTime.Now > quiz.DueDate)
             {
                 TempData["LessonError"] = $"The deadline for \"{quiz.Title}\" has passed — this quiz is no longer accepting attempts.";
@@ -517,29 +536,15 @@ namespace EduLearn.Controllers
 
             var grade = QuizGrader.Grade(quiz, selectedOptionIds);
 
-            var userId = _userManager.GetUserId(User);
-            var existingResult = _context.QuizResults
-                .FirstOrDefault(r => r.QuizId == quizId && r.StudentId == userId);
-
-            if (existingResult != null)
+            _context.QuizResults.Add(new QuizResult
             {
-                existingResult.Score = grade.Score;
-                existingResult.TotalQuestions = grade.TotalQuestions;
-                existingResult.Passed = grade.Passed;
-                existingResult.AttemptDate = DateTime.Now;
-            }
-            else
-            {
-                _context.QuizResults.Add(new QuizResult
-                {
-                    QuizId = quizId,
-                    StudentId = userId,
-                    Score = grade.Score,
-                    TotalQuestions = grade.TotalQuestions,
-                    Passed = grade.Passed,
-                    AttemptDate = DateTime.Now
-                });
-            }
+                QuizId = quizId,
+                StudentId = userId,
+                Score = grade.Score,
+                TotalQuestions = grade.TotalQuestions,
+                Passed = grade.Passed,
+                AttemptDate = DateTime.Now
+            });
 
             _context.SaveChanges();
 

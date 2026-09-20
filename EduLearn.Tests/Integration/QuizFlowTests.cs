@@ -101,7 +101,7 @@ namespace EduLearn.Tests.Integration
         }
 
         [Fact]
-        public void SubmitQuiz_RetakeWithWorseScore_UpdatesExistingRowInPlace()
+        public void SubmitQuiz_SecondAttempt_IsRejectedAndFirstResultStandsUnchanged()
         {
             using var context = TestHelpers.CreateInMemoryContext();
 
@@ -115,13 +115,38 @@ namespace EduLearn.Tests.Integration
             var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>(), Mock.Of<EduLearn.Services.IFileUploadService>());
             TestHelpers.AttachControllerContext(controller, student.Id);
 
-            controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 }); // both correct
-            controller.SubmitQuiz(quiz.Id, new List<int> { 11, 13 }); // retake, both wrong
+            controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 }); // both correct — the one allowed attempt
+            var secondAttempt = controller.SubmitQuiz(quiz.Id, new List<int> { 11, 13 }); // crafted second attempt, both wrong
+
+            var redirect = Assert.IsType<RedirectToActionResult>(secondAttempt);
+            Assert.Equal("QuizResult", redirect.ActionName);
 
             var results = context.QuizResults.Where(r => r.QuizId == quiz.Id && r.StudentId == student.Id).ToList();
-            Assert.Single(results); // must update in place, not accumulate attempt history
-            Assert.Equal(0, results[0].Score);
-            Assert.False(results[0].Passed);
+            Assert.Single(results); // no second row, and the first attempt's score must be untouched
+            Assert.Equal(2, results[0].Score);
+            Assert.True(results[0].Passed);
+        }
+
+        [Fact]
+        public void TakeQuiz_AfterAlreadyAttempted_RedirectsToResultInsteadOfShowingForm()
+        {
+            using var context = TestHelpers.CreateInMemoryContext();
+
+            var student = new ApplicationUser { Id = "quiz-student-retake", FullName = "Q Student Retake", Email = "qsr@example.com", UserName = "qsr@example.com" };
+            var instructor = new ApplicationUser { Id = "quiz-instructor-retake", FullName = "Q Instructor Retake", Email = "qir@example.com", UserName = "qir@example.com" };
+            context.Users.AddRange(student, instructor);
+
+            var (_, _, _, _, quiz) = SeedCourseWithQuiz(context, instructor.Id);
+
+            var mockUserManager = TestHelpers.CreateMockUserManager(student);
+            var controller = new CourseController(context, mockUserManager.Object, Mock.Of<IWebHostEnvironment>(), Mock.Of<EduLearn.Services.IEmailService>(), Mock.Of<EduLearn.Services.INotificationService>(), Mock.Of<EduLearn.Services.IFileUploadService>());
+            TestHelpers.AttachControllerContext(controller, student.Id);
+
+            controller.SubmitQuiz(quiz.Id, new List<int> { 10, 12 });
+            var result = controller.TakeQuiz(quiz.Id);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("QuizResult", redirect.ActionName);
         }
 
         [Fact]

@@ -126,13 +126,13 @@
                                 </span>
                             </div>
                         }
-                        @if (quizPastDue)
+                        @if (quizResults.ContainsKey(quiz.Id))
+                        {
+                            <!-- Already attempted — one attempt per student per quiz, no retake. -->
+                        }
+                        else if (quizPastDue)
                         {
                             <span class="status-pill rejected">Deadline Passed</span>
-                        }
-                        else if (quizResults.ContainsKey(quiz.Id))
-                        {
-                            <a asp-action="TakeQuiz" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-outline-primary">Retake Quiz</a>
                         }
                         else
                         {
