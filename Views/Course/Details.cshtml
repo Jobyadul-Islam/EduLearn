@@ -163,6 +163,15 @@
                 else if (User.IsInRole("Admin"))
                 {
                     <p class="text-muted-2 small mb-2">Admin accounts don't enroll in courses.</p>
+                    @if (Model.Status != EduLearn.Models.CourseStatus.Approved)
+                    {
+                        <button type="button" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#approveModal-@Model.Id">
+                            Approve Course
+                        </button>
+                        <button type="button" class="btn btn-outline-danger w-100 mb-2" data-bs-toggle="modal" data-bs-target="#rejectModal-@Model.Id">
+                            Reject Course
+                        </button>
+                    }
                     <a asp-controller="Admin" asp-action="Index" asp-area="Admin" class="btn btn-outline-primary w-100">Go to Admin Dashboard</a>
                 }
                 else if (User.Identity.IsAuthenticated)
@@ -204,3 +213,56 @@
         </div>
     </div>
 </div>
+
+@if (User.IsInRole("Admin") && Model.Status != EduLearn.Models.CourseStatus.Approved)
+{
+    <div class="modal fade" id="approveModal-@Model.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Admin" asp-action="ApproveCourse" asp-area="Admin" asp-route-id="@Model.Id" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Approve "@Model.Title"</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2">Set the price for this course:</p>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="isFree" id="priceFree-@Model.Id" value="true" checked onchange="document.getElementById('priceAmount-@Model.Id').disabled = true" />
+                            <label class="form-check-label" for="priceFree-@Model.Id">Free</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="isFree" id="priceSet-@Model.Id" value="false" onchange="document.getElementById('priceAmount-@Model.Id').disabled = false" />
+                            <label class="form-check-label" for="priceSet-@Model.Id">Set a price</label>
+                        </div>
+                        <input type="number" name="price" id="priceAmount-@Model.Id" class="form-control" min="1" step="1" placeholder="Amount in TK" disabled />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Approve Course</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="rejectModal-@Model.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Admin" asp-action="RejectCourse" asp-area="Admin" asp-route-id="@Model.Id" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Reject "@Model.Title"</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="rejectReason-@Model.Id" class="form-label">Reason (optional — shown to the instructor)</label>
+                        <textarea id="rejectReason-@Model.Id" name="reason" class="form-control" rows="3" placeholder="e.g. Please add more lesson content before resubmitting."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Reject Course</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
