@@ -95,6 +95,23 @@ namespace EduLearn.Tests.Integration
             userManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
         }
 
+        [Theory]
+        [InlineData("0171234567")]   // 10 digits — one short
+        [InlineData("017123456789")] // 12 digits — one too many
+        public async Task Edit_Post_WithPhoneNumberNotExactlyElevenDigits_IsRejected_AndTheAccountIsUnchanged(string phone)
+        {
+            var (user, controller, userManager) = CreateController();
+            var model = new ProfileEditViewModel { FullName = "Original Name", PhoneNumber = phone };
+            controller.TryValidateModel(model);
+
+            var result = await controller.Edit(model);
+
+            Assert.IsType<ViewResult>(result);
+            Assert.False(controller.ModelState.IsValid);
+            Assert.Equal("01711111111", user.PhoneNumber);
+            userManager.Verify(m => m.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        }
+
         [Fact]
         public async Task Edit_Post_NeverWritesTheSubmittedEmailBackToTheAccount()
         {

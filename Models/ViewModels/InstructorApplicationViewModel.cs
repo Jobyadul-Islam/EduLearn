@@ -11,6 +11,7 @@ namespace EduLearn.Models.ViewModels
         public string Email { get; set; }
 
         [Required]
+        [RegularExpression(@"^\d{11}$", ErrorMessage = "Phone number must be exactly 11 digits.")]
         public string PhoneNumber { get; set; }
 
         [Required]

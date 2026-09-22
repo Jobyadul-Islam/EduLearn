@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
@@ -16,7 +15,7 @@ namespace EduLearn.Models
         public bool IsViewingOwnProfile { get; set; }
     }
 
-    public class ProfileEditViewModel : IValidatableObject
+    public class ProfileEditViewModel
     {
         // Display-only — rendered readonly and never written back to the account. Changing
         // an email properly needs its own confirmation flow (Identity ties it to the login
@@ -29,11 +28,13 @@ namespace EduLearn.Models
         [Display(Name = "Full Name")]
         public string FullName { get; set; } = string.Empty;
 
-        // No [Phone] here on purpose: PhoneAttribute treats an empty string as an invalid
-        // phone number rather than "none given" (confirmed — it only skips a null value),
-        // which would make it impossible to ever clear a saved phone number. The format
-        // check instead runs in Validate() below, only when a value is actually present.
-        [StringLength(20, ErrorMessage = "Phone number can't be longer than 20 characters.")]
+        // Optional field, so [RegularExpression] rather than [Phone]: confirmed live that
+        // RegularExpressionAttribute treats both null AND an empty string as valid (skips
+        // the pattern check), so clearing a saved number still works — PhoneAttribute
+        // doesn't extend that same skip to an empty string, which would make it impossible
+        // to ever clear one.
+        [StringLength(11, ErrorMessage = "Phone number can't be longer than 11 digits.")]
+        [RegularExpression(@"^\d{11}$", ErrorMessage = "Phone number must be exactly 11 digits.")]
         [Display(Name = "Phone Number")]
         public string? PhoneNumber { get; set; }
 
@@ -48,13 +49,5 @@ namespace EduLearn.Models
         // data:image/jpeg;base64,... string when a new picture was chosen — this, not
         // NewProfilePicture's raw bytes, is what actually gets saved.
         public string? CroppedPictureData { get; set; }
-
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-        {
-            if (!string.IsNullOrWhiteSpace(PhoneNumber) && !new PhoneAttribute().IsValid(PhoneNumber))
-            {
-                yield return new ValidationResult("Enter a valid phone number.", new[] { nameof(PhoneNumber) });
-            }
-        }
     }
 }
