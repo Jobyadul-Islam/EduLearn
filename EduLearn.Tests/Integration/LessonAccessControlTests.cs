@@ -128,6 +128,20 @@ namespace EduLearn.Tests.Integration
         }
 
         [Fact]
+        public void SubmitAssignment_Get_PopulatesDescriptionAndDueDate_SoTheStudentCanSeeWhatsBeingAsked()
+        {
+            var (context, student, _, _, _, paywalledAssignment) = SeedPaidCourse(EnrollmentStatus.Active);
+            using var _c = context;
+            var controller = CreateController(context, student);
+
+            var result = controller.SubmitAssignment(paywalledAssignment.Id);
+
+            Assert.IsType<ViewResult>(result);
+            Assert.Equal(paywalledAssignment.Description, controller.ViewBag.AssignmentDescription);
+            Assert.Equal(paywalledAssignment.DueDate, controller.ViewBag.AssignmentDueDate);
+        }
+
+        [Fact]
         public async Task SubmitAssignment_Post_UnpaidStudent_OnAPaywalledAssignment_IsForbidden_AndNoSubmissionIsSaved()
         {
             var (context, student, _, _, _, paywalledAssignment) = SeedPaidCourse(EnrollmentStatus.Pending);

@@ -760,6 +760,8 @@ namespace EduLearn.Controllers
 
             ViewBag.AssignmentId = assignmentId;
             ViewBag.AssignmentTitle = assignment.Title;
+            ViewBag.AssignmentDescription = assignment.Description;
+            ViewBag.AssignmentDueDate = assignment.DueDate;
             return View();
         }
 
@@ -787,6 +789,8 @@ namespace EduLearn.Controllers
                 var assignment = _context.Assignments.Find(assignmentId);
                 ViewBag.AssignmentId = assignmentId;
                 ViewBag.AssignmentTitle = assignment.Title;
+                ViewBag.AssignmentDescription = assignment.Description;
+                ViewBag.AssignmentDueDate = assignment.DueDate;
                 return View();
             }
 
@@ -802,6 +806,8 @@ namespace EduLearn.Controllers
                 var assignment = _context.Assignments.Find(assignmentId);
                 ViewBag.AssignmentId = assignmentId;
                 ViewBag.AssignmentTitle = assignment.Title;
+                ViewBag.AssignmentDescription = assignment.Description;
+                ViewBag.AssignmentDueDate = assignment.DueDate;
                 return View();
             }
 
