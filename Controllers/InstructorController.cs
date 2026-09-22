@@ -381,6 +381,10 @@ namespace EduLearn.Controllers
         // GET: Create a Module under a course
         public IActionResult CreateModule(int courseId)
         {
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Courses.Any(c => c.Id == courseId && c.InstructorId == userId);
+            if (!owned) return NotFound();
+
             ViewBag.CourseId = courseId;
             return View();
         }
@@ -388,6 +392,13 @@ namespace EduLearn.Controllers
         [HttpPost]
         public IActionResult CreateModule(Module module)
         {
+            // Re-checked on POST, independently of the GET — courseId is a plain hidden
+            // form field, so nothing stops a crafted POST from naming another instructor's
+            // course if this weren't checked here too.
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Courses.Any(c => c.Id == module.CourseId && c.InstructorId == userId);
+            if (!owned) return NotFound();
+
             if (!ModelState.IsValid)
             {
                 ViewBag.CourseId = module.CourseId;
@@ -405,6 +416,10 @@ namespace EduLearn.Controllers
         // GET: Create a Lesson under a module
         public IActionResult CreateLesson(int moduleId)
         {
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Modules.Any(m => m.Id == moduleId && m.Course.InstructorId == userId);
+            if (!owned) return NotFound();
+
             ViewBag.ModuleId = moduleId;
             return View();
         }
@@ -412,6 +427,13 @@ namespace EduLearn.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateLesson(Lesson lesson, IFormFile? LessonFile)
         {
+            // Re-checked on POST, independently of the GET — moduleId is a plain hidden
+            // form field, so nothing stops a crafted POST from naming a module that belongs
+            // to another instructor's course if this weren't checked here too.
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Modules.Any(m => m.Id == lesson.ModuleId && m.Course.InstructorId == userId);
+            if (!owned) return NotFound();
+
             if (!ModelState.IsValid)
             {
                 ViewBag.ModuleId = lesson.ModuleId;
@@ -445,6 +467,10 @@ namespace EduLearn.Controllers
         // GET: Create an Assignment under a lesson
         public IActionResult CreateAssignment(int lessonId)
         {
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Lessons.Any(l => l.Id == lessonId && l.Module.Course.InstructorId == userId);
+            if (!owned) return NotFound();
+
             ViewBag.LessonId = lessonId;
             return View();
         }
@@ -452,6 +478,13 @@ namespace EduLearn.Controllers
         [HttpPost]
         public IActionResult CreateAssignment(Assignment assignment)
         {
+            // Re-checked on POST, independently of the GET — lessonId is a plain hidden
+            // form field, so nothing stops a crafted POST from naming a lesson that belongs
+            // to another instructor's course if this weren't checked here too.
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Lessons.Any(l => l.Id == assignment.LessonId && l.Module.Course.InstructorId == userId);
+            if (!owned) return NotFound();
+
             if (!ModelState.IsValid)
             {
                 ViewBag.LessonId = assignment.LessonId;
@@ -471,6 +504,10 @@ namespace EduLearn.Controllers
         // GET: Create a Quiz under a lesson
         public IActionResult CreateQuiz(int lessonId)
         {
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Lessons.Any(l => l.Id == lessonId && l.Module.Course.InstructorId == userId);
+            if (!owned) return NotFound();
+
             var model = new QuizCreateViewModel { LessonId = lessonId };
             // start with 1 empty question, each with 2 empty options, so the form isn't blank
             model.Questions.Add(new QuestionViewModel
@@ -502,6 +539,23 @@ namespace EduLearn.Controllers
         [HttpPost]
         public IActionResult CreateQuiz(QuizCreateViewModel model)
         {
+            // Re-checked on POST, independently of the GET — lessonId is a plain hidden
+            // form field, so nothing stops a crafted POST from naming a lesson that belongs
+            // to another instructor's course if this weren't checked here too. This also
+            // guards the lesson.ModuleId lookup below from a bad/missing id.
+            var userId = _userManager.GetUserId(User);
+            var owned = _context.Lessons.Any(l => l.Id == model.LessonId && l.Module.Course.InstructorId == userId);
+            if (!owned) return NotFound();
+
+            // Previously missing entirely: title, "at least one question", "every question
+            // has text and at least one correct option" are all enforced by
+            // QuizCreateViewModel.Validate (IValidatableObject), which ModelState.IsValid
+            // runs automatically.
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
             var quiz = new Quiz
             {
                 Title = model.Title,

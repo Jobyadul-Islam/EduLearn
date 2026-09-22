@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
@@ -7,7 +8,16 @@ namespace EduLearn.Models
     public class Course
     {
         public int Id { get; set; }
+
+        // Explicit [Required] on purpose: with <Nullable>enable</Nullable>, MVC infers an
+        // implicit "required" for a non-nullable string, but that inference only rejects a
+        // MISSING field — a submitted form always posts the field, so Title="" still binds
+        // and passes ModelState.IsValid without this attribute (confirmed via the MVC
+        // validation pipeline directly). RequiredAttribute rejects empty/whitespace too.
+        [Required(ErrorMessage = "Title is required.")]
         public string Title { get; set; }
+
+        [Required(ErrorMessage = "Description is required.")]
         public string Description { get; set; }
 
         [ValidateNever]

@@ -7,6 +7,7 @@
 <div class="mx-auto" style="max-width:680px;">
     <h2 class="section-title mb-4">Add Quiz</h2>
 
+    <div asp-validation-summary="All" class="text-danger mb-2"></div>
     <form asp-action="CreateQuiz" method="post" id="quizForm">
         <input type="hidden" name="LessonId" value="@Model.LessonId" />
 

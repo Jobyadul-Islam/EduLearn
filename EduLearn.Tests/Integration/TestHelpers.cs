@@ -8,8 +8,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace EduLearn.Tests.Integration
@@ -81,6 +85,24 @@ namespace EduLearn.Tests.Integration
             {
                 mvcController.TempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
             }
+        }
+
+        private static readonly IServiceProvider ValidationServices = new ServiceCollection()
+            .AddControllersWithViews()
+            .Services
+            .BuildServiceProvider();
+
+        /// <summary>
+        /// Wires up the real ASP.NET Core model-metadata/validation pipeline (the same one
+        /// Program.cs registers via AddControllersWithViews) on a controller built with
+        /// `new`, so controller.TryValidateModel(x) — and therefore [Required]/[Range]/
+        /// IValidatableObject — actually runs instead of throwing (a bare controller has no
+        /// ObjectValidator/MetadataProvider wired unless the real MVC host constructed it).
+        /// </summary>
+        public static void AttachValidation(ControllerBase controller)
+        {
+            controller.MetadataProvider = ValidationServices.GetRequiredService<IModelMetadataProvider>();
+            controller.ObjectValidator = ValidationServices.GetRequiredService<IObjectModelValidator>();
         }
     }
 }
