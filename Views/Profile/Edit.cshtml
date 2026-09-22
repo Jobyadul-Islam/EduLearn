@@ -33,6 +33,24 @@
                 <input asp-for="CroppedPictureData" type="hidden" data-cropper-output />
             </div>
 
+            <div class="mb-3">
+                <label asp-for="FullName" class="form-label">Full Name</label>
+                <input asp-for="FullName" class="form-control" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label">Email</label>
+                <input asp-for="Email" class="form-control" readonly disabled />
+                <div class="form-text">Your email is also your login — it can't be changed here.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="PhoneNumber" class="form-label">Phone Number</label>
+                <input asp-for="PhoneNumber" class="form-control" placeholder="e.g. 01712345678" />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+
             <div class="mb-4">
                 <label asp-for="Bio" class="form-label">Bio</label>
                 <textarea asp-for="Bio" class="form-control" rows="3" maxlength="500"></textarea>

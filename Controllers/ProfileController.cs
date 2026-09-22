@@ -47,6 +47,7 @@ namespace EduLearn.Controllers
                 UserId = targetUser.Id,
                 FullName = targetUser.FullName,
                 Email = targetUser.Email ?? string.Empty,
+                PhoneNumber = targetUser.PhoneNumber,
                 ProfilePicture = targetUser.ProfilePicture,
                 Bio = targetUser.Bio,
                 Role = roles.Count > 0 ? roles[0] : "Student",
@@ -65,6 +66,9 @@ namespace EduLearn.Controllers
 
             var vm = new ProfileEditViewModel
             {
+                Email = currentUser.Email ?? string.Empty,
+                FullName = currentUser.FullName,
+                PhoneNumber = currentUser.PhoneNumber,
                 Bio = currentUser.Bio,
                 CurrentProfilePicture = currentUser.ProfilePicture
             };
@@ -84,6 +88,8 @@ namespace EduLearn.Controllers
                 return View(model);
             }
 
+            currentUser.FullName = model.FullName.Trim();
+            currentUser.PhoneNumber = string.IsNullOrWhiteSpace(model.PhoneNumber) ? null : model.PhoneNumber.Trim();
             currentUser.Bio = model.Bio;
 
             // The raw file the user picked only triggers the client-side cropper — what
