@@ -160,6 +160,35 @@ namespace EduLearn.Controllers
         private bool HasPrivilegedPreviewAccess() =>
             User.Identity!.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("Instructor"));
 
+        // The same access rule ViewLesson/LessonFile already enforce (enrolled AND (full
+        // paid access OR one of the free-preview lessons), or an Admin/Instructor
+        // previewing), shared so an action that touches lesson content can't forget it the
+        // way MarkComplete and SubmitAssignment originally did — both required only
+        // [Authorize], with no check that the caller had actually paid for (or was allowed
+        // to preview) that specific lesson.
+        // Returns false with lesson == null for a lesson that doesn't exist (caller should
+        // 404), or false with lesson populated for one that exists but isn't accessible yet
+        // (caller should Forbid).
+        private bool TryLoadAccessibleLesson(int lessonId, out Lesson? lesson)
+        {
+            lesson = _context.Lessons
+                .Include(l => l.Module)
+                .ThenInclude(m => m.Course)
+                .FirstOrDefault(l => l.Id == lessonId);
+            if (lesson == null) return false;
+
+            var courseId = lesson.Module.Course.Id;
+            var userId = _userManager.GetUserId(User);
+            var enrollment = _context.Enrollments.FirstOrDefault(e => e.CourseId == courseId && e.StudentId == userId);
+            bool privilegedPreview = HasPrivilegedPreviewAccess();
+
+            if (enrollment == null && !privilegedPreview) return false;
+
+            bool hasFullAccess = privilegedPreview || lesson.Module.Course.Price == 0 || enrollment?.Status == EnrollmentStatus.Active;
+            bool isFreePreview = GetFreePreviewLessonIds(courseId).Contains(lessonId);
+            return hasFullAccess || isFreePreview;
+        }
+
         [Authorize(Roles = "Student")]
         [HttpPost]
         public async Task<IActionResult> Enroll(int courseId)
@@ -452,6 +481,11 @@ namespace EduLearn.Controllers
         [HttpPost]
         public IActionResult MarkComplete(int lessonId)
         {
+            if (!TryLoadAccessibleLesson(lessonId, out var lesson))
+            {
+                return lesson == null ? NotFound() : Forbid();
+            }
+
             var userId = _userManager.GetUserId(User);
 
             var progress = _context.LessonProgresses
@@ -713,6 +747,11 @@ namespace EduLearn.Controllers
             var assignment = _context.Assignments.Find(assignmentId);
             if (assignment == null) return NotFound();
 
+            if (!TryLoadAccessibleLesson(assignment.LessonId, out var lesson))
+            {
+                return lesson == null ? NotFound() : Forbid();
+            }
+
             if (DateTime.Now > assignment.DueDate)
             {
                 TempData["LessonError"] = $"The deadline for \"{assignment.Title}\" has passed — submissions are no longer accepted.";
@@ -730,6 +769,11 @@ namespace EduLearn.Controllers
         {
             var dueDateCheck = _context.Assignments.Find(assignmentId);
             if (dueDateCheck == null) return NotFound();
+
+            if (!TryLoadAccessibleLesson(dueDateCheck.LessonId, out var lesson))
+            {
+                return lesson == null ? NotFound() : Forbid();
+            }
 
             if (DateTime.Now > dueDateCheck.DueDate)
             {
