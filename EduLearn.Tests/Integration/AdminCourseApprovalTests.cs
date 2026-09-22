@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EduLearn.Areas.Admin.Controllers;
+using EduLearn.Data;
 using EduLearn.Models;
 using EduLearn.Services;
 using Microsoft.AspNetCore.Identity;
@@ -265,6 +266,110 @@ namespace EduLearn.Tests.Integration
             Assert.Equal(3, (int)result!.ViewData["TotalUsers"]!);
             Assert.Equal(1, (int)result.ViewData["TotalStudents"]!);
             Assert.Equal(1, (int)result.ViewData["TotalInstructors"]!);
+        }
+
+        // ---------------- Refunds ----------------
+
+        private static (ApplicationDbContext context, ApplicationUser student, Course course, Enrollment enrollment, Payment payment) SeedRefundScenario(PaymentStatus paymentStatus)
+        {
+            var context = TestHelpers.CreateInMemoryContext();
+
+            var student = new ApplicationUser { Id = "refund-student", FullName = "Refund <Student>", Email = "refund.student@example.com", UserName = "refund.student@example.com" };
+            var instructor = new ApplicationUser { Id = "refund-instructor", FullName = "Instructor", Email = "refund.instr@example.com", UserName = "refund.instr@example.com" };
+            context.Users.AddRange(student, instructor);
+            context.Categories.Add(new Category { Id = 60, Name = "Cat", Description = "Cat" });
+
+            var course = new Course { Id = 60, Title = "Refundable Course", Description = "desc", Price = 500, CategoryId = 60, InstructorId = instructor.Id, Status = CourseStatus.Approved };
+            context.Courses.Add(course);
+
+            var enrollment = new Enrollment { Id = 60, CourseId = course.Id, StudentId = student.Id, EnrollDate = System.DateTime.Now, Status = EnrollmentStatus.Active, PaymentDate = System.DateTime.Now };
+            context.Enrollments.Add(enrollment);
+
+            var payment = new Payment { Id = 60, CourseId = course.Id, StudentId = student.Id, Amount = 500, TransactionId = "TRX-REFUND-1", Status = paymentStatus, CreatedAt = System.DateTime.Now };
+            context.Payments.Add(payment);
+            context.SaveChanges();
+
+            return (context, student, course, enrollment, payment);
+        }
+
+        private static AdminController CreateAdminForRefund(ApplicationDbContext context, ApplicationUser student, Mock<IEmailService> email, Mock<INotificationService> notifications)
+        {
+            var mockUserManager = TestHelpers.CreateMockUserManager(student);
+            mockUserManager.Setup(m => m.FindByIdAsync(student.Id)).ReturnsAsync(student);
+
+            var admin = new AdminController(context, mockUserManager.Object, email.Object, notifications.Object, Mock.Of<EduLearn.Services.IFileUploadService>());
+            TestHelpers.AttachControllerContext(admin, "some-admin-id");
+            return admin;
+        }
+
+        [Fact]
+        public async Task RefundPayment_MarksRefunded_RevokesAccess_AndNotifiesAndEmailsTheStudent()
+        {
+            var (context, student, course, enrollment, payment) = SeedRefundScenario(PaymentStatus.Success);
+            using var _ = context;
+
+            var email = new Mock<IEmailService>();
+            email.Setup(m => m.SendEmailAsync(student.Email, It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+            var notifications = new Mock<INotificationService>();
+            var admin = CreateAdminForRefund(context, student, email, notifications);
+
+            await admin.RefundPayment(payment.Id);
+
+            Assert.Equal(PaymentStatus.Refunded, context.Payments.Single(p => p.Id == payment.Id).Status);
+            Assert.Equal(EnrollmentStatus.Pending, context.Enrollments.Single(e => e.Id == enrollment.Id).Status);
+
+            notifications.Verify(m => m.NotifyAsync(student.Id, It.Is<string>(msg => msg.Contains(course.Title) && msg.Contains("refunded")), $"/Course/Details/{course.Id}"), Times.Once);
+
+            // The student is emailed too: the subject names the course, the body carries the
+            // amount and transaction reference, and the student's name is HTML-encoded.
+            email.Verify(m => m.SendEmailAsync(
+                "refund.student@example.com",
+                It.Is<string>(subject => subject.Contains(course.Title)),
+                It.Is<string>(body => body.Contains("500.00") && body.Contains("TRX-REFUND-1") && body.Contains(course.Title)
+                                      && body.Contains("Refund &lt;Student&gt;") && !body.Contains("<Student>"))), Times.Once);
+        }
+
+        [Fact]
+        public async Task RefundPayment_WhenTheEmailCannotBeSent_StillRefundsAndSaysSo()
+        {
+            var (context, student, _, enrollment, payment) = SeedRefundScenario(PaymentStatus.Success);
+            using var _ = context;
+
+            var email = new Mock<IEmailService>();
+            email.Setup(m => m.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+            var notifications = new Mock<INotificationService>();
+            var admin = CreateAdminForRefund(context, student, email, notifications);
+
+            await admin.RefundPayment(payment.Id);
+
+            // An undeliverable email must never undo or block the refund itself.
+            Assert.Equal(PaymentStatus.Refunded, context.Payments.Single(p => p.Id == payment.Id).Status);
+            Assert.Equal(EnrollmentStatus.Pending, context.Enrollments.Single(e => e.Id == enrollment.Id).Status);
+            notifications.Verify(m => m.NotifyAsync(student.Id, It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+
+            var message = (string)admin.TempData["EmailResult"]!;
+            Assert.Contains("refunded", message);
+            Assert.Contains("failed to send", message);
+        }
+
+        [Fact]
+        public async Task RefundPayment_OnAnAlreadyRefundedPayment_DoesNothingAndSendsNoSecondEmail()
+        {
+            var (context, student, _, enrollment, payment) = SeedRefundScenario(PaymentStatus.Refunded);
+            using var _ = context;
+            // The student has since re-enrolled and paid nothing new; the enrollment is Active again.
+            enrollment.Status = EnrollmentStatus.Active;
+            context.SaveChanges();
+
+            var email = new Mock<IEmailService>();
+            var notifications = new Mock<INotificationService>();
+            var admin = CreateAdminForRefund(context, student, email, notifications);
+
+            await admin.RefundPayment(payment.Id);
+
+            email.Verify(m => m.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            notifications.Verify(m => m.NotifyAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            Assert.Equal(EnrollmentStatus.Active, context.Enrollments.Single(e => e.Id == enrollment.Id).Status);
         }
     }
 }

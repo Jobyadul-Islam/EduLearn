@@ -553,7 +553,26 @@ namespace EduLearn.Areas.Admin.Controllers
                 $"Your payment for \"{payment.Course.Title}\" was refunded. Full access to the course has been revoked.",
                 $"/Course/Details/{payment.CourseId}");
 
-            TempData["EmailResult"] = $"Payment {payment.TransactionId} marked as refunded and course access revoked.";
+            // Also email the student — they may not open the site again soon, and a refund is
+            // exactly the kind of change they'd want a record of. Best-effort like every other
+            // email here: the refund is already saved, so a failed send must not undo it.
+            var student = await _userManager.FindByIdAsync(payment.StudentId);
+            var emailSent = false;
+            if (student != null && !string.IsNullOrWhiteSpace(student.Email))
+            {
+                var body = $@"
+                    <p>Hi {System.Net.WebUtility.HtmlEncode(student.FullName)},</p>
+                    <p>Your payment of <strong>TK {payment.Amount:0.00}</strong> for <strong>{System.Net.WebUtility.HtmlEncode(payment.Course.Title)}</strong> (transaction {System.Net.WebUtility.HtmlEncode(payment.TransactionId)}) has been refunded.</p>
+                    <p>Full access to the course has been revoked; the free preview lessons remain available.</p>
+                    <p>If you have any questions about this refund, please get in touch with us.</p>
+                    <p>— EduLearn</p>";
+
+                emailSent = await _emailService.SendEmailAsync(student.Email, $"Your refund for {payment.Course.Title}", body);
+            }
+
+            TempData["EmailResult"] = emailSent
+                ? $"Payment {payment.TransactionId} marked as refunded, course access revoked, and a confirmation emailed to {student!.Email}."
+                : $"Payment {payment.TransactionId} marked as refunded and course access revoked, but the confirmation email failed to send. Check the email configuration.";
             return RedirectToAction("Payments");
         }
 
