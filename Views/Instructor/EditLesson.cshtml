@@ -1,0 +1,45 @@
+@model EduLearn.Models.Lesson
+
+@{
+    ViewData["Title"] = "Edit Lesson";
+}
+
+<div class="mx-auto" style="max-width:600px;">
+    <h2 class="section-title mb-4">Edit Lesson</h2>
+
+    <div class="card form-card">
+        <div asp-validation-summary="All" class="text-danger mb-2"></div>
+        <form asp-action="EditLesson" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label">Lesson Title</label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Content" class="form-label">Content</label>
+                <textarea asp-for="Content" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="VideoUrl" class="form-label">Video URL (optional)</label>
+                <input asp-for="VideoUrl" class="form-control" />
+            </div>
+            @if (!string.IsNullOrEmpty(Model.FilePath))
+            {
+                <div class="mb-2">
+                    <span class="small text-muted-2">Current file:</span>
+                    <a asp-controller="Course" asp-action="LessonFile" asp-route-lessonId="@Model.Id" target="_blank" class="small">View current file</a>
+                </div>
+            }
+            <div class="mb-4">
+                <label for="lessonFileInput" class="form-label">Replace File (video/PDF)</label>
+                <input type="file" id="lessonFileInput" name="LessonFile" class="form-control" />
+                <div class="form-text">Leave empty to keep the current file.</div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a asp-action="CourseDetails" asp-route-id="@ViewBag.CourseId" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

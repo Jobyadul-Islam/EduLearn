@@ -462,6 +462,68 @@ namespace EduLearn.Controllers
             return RedirectToAction("CourseDetails", new { id = module.CourseId });
         }
 
+        // GET: Edit an existing Lesson (instructor's own course only)
+        public IActionResult EditLesson(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var lesson = _context.Lessons
+                .Include(l => l.Module)
+                .FirstOrDefault(l => l.Id == id && l.Module.Course.InstructorId == userId);
+            if (lesson == null) return NotFound();
+
+            ViewBag.CourseId = lesson.Module.CourseId;
+            return View(lesson);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditLesson(int id, Lesson lesson, IFormFile? LessonFile)
+        {
+            var userId = _userManager.GetUserId(User);
+            var existing = _context.Lessons
+                .Include(l => l.Module)
+                .FirstOrDefault(l => l.Id == id && l.Module.Course.InstructorId == userId);
+            if (existing == null) return NotFound();
+
+            // Carried over so a redisplayed form (on validation failure below) still shows
+            // the right "current file" link and posts back to the right URL — none of these
+            // three are form fields on this view.
+            lesson.Id = id;
+            lesson.ModuleId = existing.ModuleId;
+            lesson.FilePath = existing.FilePath;
+            ViewBag.CourseId = existing.Module.CourseId;
+
+            if (!ModelState.IsValid)
+            {
+                return View(lesson);
+            }
+
+            existing.Title = lesson.Title;
+            existing.Content = lesson.Content;
+            existing.VideoUrl = lesson.VideoUrl;
+
+            // Uploading a new file replaces the stored path; the old file is left on disk
+            // rather than deleted, matching how this app already treats other superseded
+            // uploads (e.g. a rejected instructor's resume — see AdminController.Reject).
+            if (LessonFile != null && LessonFile.Length > 0)
+            {
+                try
+                {
+                    existing.FilePath = await _fileUploadService.SavePrivateFileAsync(
+                        LessonFile, "lessons", UploadPolicy.LessonExtensions, UploadPolicy.LessonMaxSizeBytes);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    ModelState.AddModelError(nameof(LessonFile), ex.Message);
+                    lesson.FilePath = existing.FilePath; // unchanged — the new upload failed
+                    return View(lesson);
+                }
+            }
+
+            _context.SaveChanges();
+
+            return RedirectToAction("CourseDetails", new { id = existing.Module.CourseId });
+        }
+
         // ---------------- Assignment ----------------
 
         // GET: Create an Assignment under a lesson
