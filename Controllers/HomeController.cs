@@ -41,19 +41,33 @@ namespace EduLearn.Controllers
             var admins = await _userManager.GetUsersInRoleAsync("Admin");
             ViewBag.ContactEmail = admins.FirstOrDefault()?.Email ?? "contact@edulearn.com";
 
+            var ratingsByCourseId = _context.Reviews
+                .GroupBy(r => r.CourseId)
+                .Select(g => new { CourseId = g.Key, Average = g.Average(r => r.Rating), Count = g.Count() })
+                .ToDictionary(x => x.CourseId, x => (Average: x.Average, Count: x.Count));
+
+            // Top-rated first. A course with no reviews yet is treated as -1 (a real rating
+            // is always >= 1), so it sinks to the bottom rather than disappearing entirely —
+            // a good new course should still get a chance to be featured if fewer than 6
+            // courses have any reviews yet. Ties broken by review count (more confidence in
+            // the average), then by newest, so the section isn't frozen before reviews
+            // start coming in.
             var featuredCourses = _context.Courses
                 .Include(c => c.Category)
                 .Where(c => c.Status == CourseStatus.Approved)
-                .OrderByDescending(c => c.Id)
+                .ToList()
+                .Select(c => (Course: c, Rating: ratingsByCourseId.GetValueOrDefault(c.Id, (Average: -1.0, Count: 0))))
+                .OrderByDescending(x => x.Rating.Average)
+                .ThenByDescending(x => x.Rating.Count)
+                .ThenByDescending(x => x.Course.Id)
                 .Take(6)
+                .Select(x => x.Course)
                 .ToList();
 
             var featuredCourseIds = featuredCourses.Select(c => c.Id).ToList();
-            ViewBag.RatingsByCourseId = _context.Reviews
-                .Where(r => featuredCourseIds.Contains(r.CourseId))
-                .GroupBy(r => r.CourseId)
-                .Select(g => new { CourseId = g.Key, Average = g.Average(r => r.Rating), Count = g.Count() })
-                .ToDictionary(x => x.CourseId, x => (x.Average, x.Count));
+            ViewBag.RatingsByCourseId = ratingsByCourseId
+                .Where(kv => featuredCourseIds.Contains(kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
 
             return View(featuredCourses);
         }
