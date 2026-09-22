@@ -28,7 +28,10 @@
     <div class="card mb-3">
         <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <strong>@module.Title</strong>
-            <a asp-action="CreateLesson" asp-route-moduleId="@module.Id" class="btn btn-sm btn-secondary">+ Add Lesson</a>
+            <div class="d-flex gap-2">
+                <a asp-action="EditModule" asp-route-id="@module.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                <a asp-action="CreateLesson" asp-route-moduleId="@module.Id" class="btn btn-sm btn-secondary">+ Add Lesson</a>
+            </div>
         </div>
         <ul class="list-group list-group-flush">
             @foreach (var lesson in module.Lessons)

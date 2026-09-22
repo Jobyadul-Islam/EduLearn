@@ -411,6 +411,36 @@ namespace EduLearn.Controllers
             return RedirectToAction("CourseDetails", new { id = module.CourseId });
         }
 
+        // GET: Edit an existing Module (instructor's own course only)
+        public IActionResult EditModule(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var module = _context.Modules.FirstOrDefault(m => m.Id == id && m.Course.InstructorId == userId);
+            if (module == null) return NotFound();
+
+            return View(module);
+        }
+
+        [HttpPost]
+        public IActionResult EditModule(int id, Module module)
+        {
+            var userId = _userManager.GetUserId(User);
+            var existing = _context.Modules.FirstOrDefault(m => m.Id == id && m.Course.InstructorId == userId);
+            if (existing == null) return NotFound();
+
+            if (!ModelState.IsValid)
+            {
+                module.Id = id;
+                module.CourseId = existing.CourseId; // needed for the Cancel link
+                return View(module);
+            }
+
+            existing.Title = module.Title;
+            _context.SaveChanges();
+
+            return RedirectToAction("CourseDetails", new { id = existing.CourseId });
+        }
+
         // ---------------- Lesson ----------------
 
         // GET: Create a Lesson under a module
